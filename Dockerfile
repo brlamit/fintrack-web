@@ -19,6 +19,9 @@ WORKDIR /var/www/html
 # 5️⃣ Copy all project files to container
 COPY . .
 
+# ⚡ Fix Apache to serve Laravel public folder
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+
 # 6️⃣ Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
