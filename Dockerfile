@@ -1,46 +1,35 @@
-FROM php:8.2-fpm-alpine
+# 1️⃣ Base image: PHP 8.2 with Apache
+FROM php:8.2-apache
 
-# Install system dependencies
-RUN apk add --no-cache \
+# 2️⃣ Install system dependencies and PHP extensions
+RUN apt-get update && apt-get install -y \
     git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
     unzip \
-    mysql-client \
-    postgresql-dev \
-    bash
+    libpq-dev \
+    libzip-dev \
+    curl \
+    && docker-php-ext-install pdo pdo_pgsql zip
 
-# Install PHP extensions (support both MySQL and Postgres drivers)
-RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd
+# 3️⃣ Enable Apache mod_rewrite (needed for Laravel routing)
+RUN a2enmod rewrite
 
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Set working directory
+# 4️⃣ Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files and install PHP dependencies
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-
-# Copy application code
+# 5️⃣ Copy all project files to container
 COPY . .
 
-# Copy docker entrypoint
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# 6️⃣ Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage
+# 7️⃣ Install Laravel PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Expose port
-EXPOSE 8000
+# 8️⃣ Set folder permissions for storage and cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# 9️⃣ Expose port 80
+EXPOSE 80
 
-# Start Laravel using the built-in server (suitable for dev). Replace with php-fpm + nginx for production.
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# 10️⃣ Start Apache in foreground
+CMD ["apache2-foreground"]
