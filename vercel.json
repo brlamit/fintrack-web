@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "framework": "laravel",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
+  "functions": {
+    "api/**/*.php": {
+      "runtime": "vercel-php@0.7.4"
+    }
+  },
+  "routes": [
+    {
+      "src": "/build/(.*)",
+      "dest": "/public/build/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.php"
+    }
+  ],
+  "env": {
+    "APP_ENV": "production",
+    "APP_DEBUG": "false",
+    "APP_KEY": "base64:A3n41Ms/ZgiWxiceePJRpDRwWzcmQWrP88MEPNr9yXs=",
+    "DB_CONNECTION": "pgsql",
+    "DB_HOST": "aws-1-ap-southeast-2.pooler.supabase.com",
+    "DB_PORT": "6543",
+    "DB_DATABASE": "postgres",
+    "DB_USERNAME": "postgres.rbvuivngveilamxliumb",
+    "DB_PASSWORD": "3daIl1hNu7HpIeJ0",
+    "DB_SSLMODE": "require",
+    "CACHE_STORE": "database",
+    "SESSION_DRIVER": "database",
+    "QUEUE_CONNECTION": "database",
+    "FILESYSTEM_DISK": "supabase_public",
+    "MAIL_MAILER": "smtp",
+    "MAIL_HOST": "smtp.gmail.com",
+    "MAIL_PORT": "587",
+    "MAIL_USERNAME": "itsmeamit991@gmail.com",
+    "MAIL_PASSWORD": "jpdoodyyibprsyio",
+    "MAIL_ENCRYPTION": "tls",
+    "MAIL_FROM_ADDRESS": "itsmeamit991@gmail.com",
+    "MAIL_FROM_NAME": "FinTrack",
+    "SUPABASE_KEY": "f9dac770c269678a2810dca81b695228",
+    "SUPABASE_SECRET": "c39fabd5ce65f53e2729f3c63633ee7287fa16b7fb4456d946a10b3f1a902dc8",
+    "SUPABASE_PUBLIC_BUCKET": "FinTrack-public",
+    "SUPABASE_ENDPOINT": "https://rbvuivngveilamxliumb.storage.supabase.co/storage/v1/s3",
+    "SUPABASE_URL": "https://rbvuivngveilamxliumb.supabase.co/storage/v1/object/public",
+    "OCR_SPACE_API_KEY": "K84269455088957"
+  }
+}
