@@ -55,7 +55,7 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # =========================
 # 🔹 Optional: set environment file permissions
 # =========================
-RUN chmod 644 /var/www/html/.env
+# RUN chmod 644 /var/www/html/.env
 
 # =========================
 # 10️⃣ Expose port 80
