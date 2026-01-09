@@ -6,7 +6,9 @@
 <div class="container py-4">
     <div class="row">
         <div class="col-md-8 offset-md-2">
-            <h3 class="mb-3">Notifications</h3>
+            <div class="mb-4" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); padding: 24px; border-radius: 16px; color: white;">
+                <h3 class="mb-0 fw-bold">Notifications</h3>
+            </div>
 
             <div class="list-group">
                 @forelse($notifications as $n)

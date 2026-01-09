@@ -8,7 +8,7 @@
         <div class="col-md-8">
             <!-- Change Password -->
             <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Change Password</h5>
                 </div>
                 <div class="card-body">
@@ -86,7 +86,7 @@
                             @enderror
                         </div>
 
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); border: none;">
                             <i class="fas fa-lock"></i> Update Password
                         </button>
                     </form>
@@ -95,7 +95,7 @@
 
             <!-- Session Management -->
             <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Active Sessions</h5>
                 </div>
                 <div class="card-body">
@@ -144,7 +144,7 @@
 
             <!-- Two-Factor Authentication -->
             <div class="card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Two-Factor Authentication</h5>
                 </div>
                 <div class="card-body">

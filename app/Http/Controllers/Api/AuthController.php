@@ -193,4 +193,151 @@ class AuthController extends Controller
             'message' => 'Password updated successfully'
         ]);
     }
+
+    public function sendResetLink(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'Validation failed',
+                    'details' => $validator->errors()
+                ]
+            ], 422);
+        }
+
+        $email = $request->input('email');
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            // Generic response to avoid revealing account existence
+            return response()->json([
+                'message' => 'If that email exists in our system, you will receive an OTP'
+            ], 200);
+        }
+
+        try {
+            $otpService = app(\App\Services\OtpService::class);
+            $otp = $otpService->generate($user, 'password_reset');
+            $user->notify(new \App\Notifications\OtpNotification($otp->code, 'password_reset'));
+
+            return response()->json([
+                'message' => 'OTP sent to your email'
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => [
+                    'code' => 'OTP_SEND_FAILED',
+                    'message' => 'Failed to send OTP'
+                ]
+            ], 500);
+        }
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email|max:255',
+            'code' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'Validation failed',
+                    'details' => $validator->errors()
+                ]
+            ], 422);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'error' => [
+                    'code' => 'USER_NOT_FOUND',
+                    'message' => 'User not found'
+                ]
+            ], 404);
+        }
+
+        try {
+            $otpService = app(\App\Services\OtpService::class);
+            
+            // Validate OTP code for password_reset context
+            if (!$otpService->validate($user, 'password_reset', $request->code)) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'INVALID_OTP',
+                        'message' => 'Invalid or expired OTP'
+                    ]
+                ], 401);
+            }
+
+            // OTP validated, update password
+            $user->update([
+                'password' => Hash::make($request->password),
+                'password_changed_at' => now(),
+                'status' => 'active',
+            ]);
+
+            return response()->json([
+                'message' => 'Password reset successfully'
+            ], 200);
+        } catch (\Throwable $e) {
+            logger()->error('Password reset failed: ' . $e->getMessage());
+            return response()->json([
+                'error' => [
+                    'code' => 'RESET_FAILED',
+                    'message' => 'Failed to reset password'
+                ]
+            ], 500);
+        }
+    }
+
+    public function forcePasswordChange(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'Validation failed',
+                    'details' => $validator->errors()
+                ]
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'error' => [
+                    'code' => 'UNAUTHORIZED',
+                    'message' => 'User not authenticated'
+                ]
+            ], 401);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+            'password_changed_at' => now(),
+            'status' => 'active',
+        ]);
+
+        return response()->json([
+            'message' => 'Password changed successfully',
+            'user' => $user,
+        ]);
+    }
 }

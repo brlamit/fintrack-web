@@ -120,7 +120,7 @@
     </div>
 
     <div class="mt-4 text-xs text-[var(--text-secondary)] flex gap-3">
-        <span>🔒 No ads</span>
+        {{-- <span>🔒 No ads</span> --}}
         <span>•</span>
         <span>No credit card required</span>
     </div>

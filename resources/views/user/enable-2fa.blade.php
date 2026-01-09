@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-success text-white">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Enable Two-Factor Authentication</h5>
                 </div>
                 <div class="card-body">
@@ -35,7 +35,7 @@
                             <input type="text" class="form-control" id="code" name="code" placeholder="000000" maxlength="6" required>
                         </div>
 
-                        <button type="submit" class="btn btn-success w-100">Enable 2FA</button>
+                        <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); border: none;">Enable 2FA</button>
                     </form>
                 </div>
             </div>

@@ -23,7 +23,7 @@
     @endif
 
     <!-- Modern Header with Gradient -->
-    <div class="position-relative overflow-hidden rounded-4 mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 120px;">
+    <div class="position-relative overflow-hidden rounded-4 mb-4" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); min-height: 120px;">
         <div class="position-absolute top-0 end-0 opacity-25">
             <svg width="200" height="120" viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="160" cy="40" r="80" fill="white"/>
@@ -47,7 +47,7 @@
             <div class="col-md-4 mb-4">
                 <div class="card h-100 border-0 shadow-sm hover-shadow-lg transition-all" style="border-radius: 16px; overflow: hidden;">
                     <!-- Card Header with Gradient -->
-                    <div class="position-relative" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 80px;">
+                    <div class="position-relative" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); height: 80px;">
                         <div class="position-absolute top-0 end-0 opacity-25">
                             <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="45" cy="15" r="40" fill="white"/>

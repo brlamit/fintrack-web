@@ -8,7 +8,7 @@
         <!-- Left: Profile Card -->
         <div class="col-lg-4">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-gradient text-white text-center py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-header bg-gradient text-white text-center py-4" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0 fw-bold">Profile Information</h5>
                 </div>
                 <div class="card-body text-center pt-4">

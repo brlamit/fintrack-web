@@ -89,11 +89,11 @@
 
         <div class="col-lg-4 d-flex flex-column gap-3">
             <div class="card shadow-sm quick-actions-card border-0 rounded-4 overflow-hidden h-100">
-                <div class="card-header quick-actions-header text-white border-0">
+                <div class="card-header quick-actions-header text-white border-0" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Quick Actions</h5>
                 </div>
                 <div class="card-body d-flex flex-column gap-2">
-                    <a href="{{ route('user.transactions.create') }}" class="btn btn-primary quick-actions-btn-primary w-100 rounded-pill shadow-sm">
+                    <a href="{{ route('user.transactions.create') }}" class="btn btn-primary quick-actions-btn-primary w-100 rounded-pill shadow-sm" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); border: none;">
                         <i class="fas fa-plus-circle me-1"></i> Add Transaction
                     </a>
                     <a href="{{ route('user.budgets') }}" class="btn quick-actions-btn-secondary w-100 rounded-pill">
@@ -212,9 +212,22 @@
                 </div>
                 <div class="card-body">
                     @if(!empty($chartData['category']['labels']))
-                        <canvas id="expenseCategoryChart" height="260"></canvas>
+                        <div style="height: 260px;">
+                            <canvas id="expenseCategoryChart"></canvas>
+                        </div>
+                        <div class="category-legend mt-4">
+                            @foreach($chartData['category']['labels'] as $index => $label)
+                                @php
+                                    $color = $chartData['category']['colors'][$index];
+                                @endphp
+                                <div class="legend-item">
+                                    <span class="color-dot" style="background-color: {{ $color }};"></span>
+                                    <span class="fw-semibold">{{ $label }}</span>
+                                </div>
+                            @endforeach
+                        </div>
                     @else
-                        <p class="text-muted text-center mb-0">Add {{ ucfirst($filters['category_type'] ?? 'expense') }} transactions to see category insights.</p>
+                        <p class="text-muted text-center mb-0 py-4">Add {{ ucfirst($filters['category_type'] ?? 'expense') }} transactions to see category insights.</p>
                     @endif
                 </div>
             </div>
@@ -328,7 +341,7 @@
 </div>
 
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Budget Status</h5>
                     <a href="{{ route('user.budgets') }}" class="btn btn-sm btn-light">Manage Budgets</a>
                 </div>
@@ -347,7 +360,7 @@
                     @else
                         <div class="text-center py-4">
                             <p class="text-muted mb-3">You don't have any active budgets yet.</p>
-                            <a href="{{ route('user.budgets') }}" class="btn btn-primary">Create your first budget</a>
+                            <a href="{{ route('user.budgets') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); border: none;">Create your first budget</a>
                         </div>
                     @endif
                 </div>
@@ -355,7 +368,7 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="card shadow-sm border-0 recent-transactions-card rounded-4 overflow-hidden">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <div class="card-header text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge rounded-pill bg-white bg-opacity-10">
                             <i class="fas fa-receipt me-1"></i> Recent
@@ -1116,5 +1129,27 @@
 
     .control-pill:focus { outline: 3px solid rgba(59,130,246,0.25); outline-offset: 2px; }
     .control-pill.disabled { opacity: .5; pointer-events: none; }
+
+    .category-legend {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .category-legend .legend-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        background-color: rgba(148, 163, 184, 0.08);
+    }
+
+    .category-legend .color-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.6rem;
+    }
 </style>
 @endpush

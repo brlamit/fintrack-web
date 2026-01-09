@@ -218,6 +218,50 @@
             background: var(--glass-bg);
             color: var(--text-primary);
         }
+
+        /* Page Loader Styles */
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(4px);
+        }
+
+        .loader-content {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .loader-content .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3em;
+        }
+
+        .loader-content p {
+            margin-bottom: 0;
+            font-size: 14px;
+        }
+
+        /* Dark mode loader */
+        body.user-theme:not(.theme-light) .loader-content {
+            background: #1e1e28;
+            color: #f1f5f9;
+        }
+
+        body.user-theme:not(.theme-light) .loader-content p {
+            color: #94a3b8;
+        }
     </style>
 
     @stack('styles')
@@ -663,11 +707,41 @@
                 })();
             @endif
         })();
+
+        // Show loader on form submission
+        document.addEventListener('submit', function(e) {
+            const pageLoader = document.getElementById('pageLoader');
+            if (pageLoader) {
+                pageLoader.style.display = 'flex';
+            }
+        }, true);
+
+        // Disable all buttons on form submission
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            const buttons = form.querySelectorAll('button[type="submit"], button.btn-primary, button.btn-success, button.btn-danger');
+            buttons.forEach(button => {
+                button.disabled = true;
+                button.style.opacity = '0.6';
+                button.style.pointerEvents = 'none';
+            });
+        }, true);
     </script>
 
 <!-- Tawk.to Live Chat - 100% Working -->
     @yield('modals')
     @stack('scripts')
+    
+    <!-- Page Loader -->
+    <div id="pageLoader" class="page-loader" style="display: none;">
+        <div class="loader-content">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Processing your request...</p>
+        </div>
+    </div>
+    
     <!-- Notification toast -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
         <div id="notif-toast" class="toast text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">

@@ -9,7 +9,7 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Generate Reports</h5>
                 </div>
                 <div class="card-body">

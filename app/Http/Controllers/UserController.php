@@ -87,23 +87,7 @@ public function dashboard(Request $request)
         $categoryChartType = 'expense';
     }
 
-    $overallIncome = Transaction::query()
-        ->where('user_id', $user->id)
-        ->whereNull('group_id')
-        ->where('type', 'income')
-        ->sum('amount');
-
-    $overallExpense = Transaction::query()
-        ->where('user_id', $user->id)
-        ->whereNull('group_id')
-        ->where('type', 'expense')
-        ->sum('amount');
-
-    $totalNet = $overallIncome - $overallExpense;
-    $overallExpenseRatio = $overallIncome > 0
-        ? min(max(($overallExpense / max($overallIncome, 1)) * 100, 0), 100)
-        : null;
-
+    // Only fetch current month data - no overall/all-time data
     $startOfMonth = $chartEndMonth->copy()->startOfMonth();
     $endOfMonth = $chartEndMonth->copy()->endOfMonth();
 
@@ -122,6 +106,15 @@ public function dashboard(Request $request)
         ->sum('amount');
 
     $monthNet = $monthlyIncome - $monthlyExpense;
+
+    $totalNet = $monthNet; // Use monthly net instead of overall
+    
+    // Initialize overall to match monthly (current month only display)
+    $overallIncome = $monthlyIncome;
+    $overallExpense = $monthlyExpense;
+    $overallExpenseRatio = $monthlyIncome > 0
+        ? min(max(($monthlyExpense / max($monthlyIncome, 1)) * 100, 0), 100)
+        : null;
 
     $now = Carbon::now();
     $daysInSelectedMonth = $chartEndMonth->daysInMonth;
@@ -171,27 +164,8 @@ public function dashboard(Request $request)
         ];
     }
 
-    $recentTransactions = Transaction::query()
-        ->where('user_id', $user->id)
-        ->whereNull('group_id')
-        ->with(['category', 'receipt'])
-        ->orderByRaw('COALESCE(transaction_date, created_at) DESC')
-        ->limit(5)
-        ->get()
-        ->map(function (Transaction $transaction) use ($formatCurrency) {
-            $transactionDate = $transaction->transaction_date ?? $transaction->created_at;
-
-            return [
-                'type' => $transaction->type,
-                'description' => $transaction->description,
-                'category_name' => optional($transaction->category)->name,
-                'display_amount' => $formatCurrency((float) ($transaction->amount ?? 0)),
-                'display_date' => $transactionDate?->format('M d, Y'),
-                'is_income' => $transaction->type === 'income',
-                // Use the accessor so this is a fully resolved, public URL when possible
-                'receipt_path' => $transaction->receipt_path,
-            ];
-        });
+    // Remove recent transactions from dashboard - move to transaction page
+    $recentTransactions = [];
 
     $categoryCount = Category::query()
         ->where(function ($query) use ($user) {
@@ -1384,8 +1358,15 @@ public function dashboard(Request $request)
                 break;
         }
 
+        $categories = Category::query()
+            ->where(fn ($query) => $query->whereNull('user_id')->orWhere('user_id', auth()->id()))
+            ->orderByRaw("COALESCE(type, '') ASC")
+            ->orderBy('name')
+            ->get();
+
         return view('user.transactions.index', [
             'transactions' => $transactions,
+            'categories' => $categories,
             'totals' => $totals,
             'filters' => $filters,
             'periodLabel' => $periodLabel,

@@ -45,9 +45,10 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | 10080 minutes = 7 days
     */
 
-    'expiration' => null,
+    'expiration' => 10080,
 
     /*
     |--------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 @extends('layouts.user')
 
-@section('title', 'Add Transaction')
+@section('title', 'Edit Transaction')
 
 @section('content')
 <div class="container-fluid py-4">
@@ -11,9 +11,9 @@
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center">
                         <div class="bg-white bg-opacity-20 rounded-3 p-3 me-3">
-                            <i class="fas fa-plus-circle text-white fs-4"></i>
+                            <i class="fas fa-edit text-white fs-4"></i>
                         </div>
-                        <h2 class="card-title text-white mb-0 fw-bold">Add New Transaction</h2>
+                        <h2 class="card-title text-white mb-0 fw-bold">Edit Transaction</h2>
                     </div>
                 </div>
             </div>
@@ -35,17 +35,9 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('user.transactions.store') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('user.transaction.update', $transaction->id) }}">
                         @csrf
-
-                        @if($categories->isEmpty())
-                            <div class="alert alert-warning border-0 shadow-sm" style="border-radius: 12px;">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    No categories available yet. Please create at least one income or expense category before adding a transaction.
-                                </div>
-                            </div>
-                        @endif
+                        @method('PUT')
 
                         <!-- Description Field -->
                         <div class="mb-4">
@@ -57,7 +49,7 @@
                                     <i class="fas fa-comment text-muted"></i>
                                 </span>
                                 <input type="text" class="form-control border-start-0 ps-0 @error('description') is-invalid @enderror"
-                                       id="description" name="description" value="{{ old('description') }}" placeholder="What is this transaction for?"
+                                       id="description" name="description" value="{{ old('description', $transaction->description) }}" placeholder="What is this transaction for?"
                                        style="border-radius: 0 12px 12px 0; border-left: none;" required>
                                 @error('description')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -71,14 +63,14 @@
                                 <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
                                 <div class="btn-group w-100" role="group">
                                     <input type="radio" class="btn-check" name="type" id="expense" value="expense"
-                                           {{ old('type', 'expense') == 'expense' ? 'checked' : '' }}>
+                                           {{ old('type', $transaction->type) == 'expense' ? 'checked' : '' }}>
                                     <label class="btn btn-outline-danger rounded-start-3" for="expense"
                                            style="border-radius: 12px 0 0 12px !important;">
                                         <i class="fas fa-minus-circle me-2"></i>Expense
                                     </label>
 
                                     <input type="radio" class="btn-check" name="type" id="income" value="income"
-                                           {{ old('type') == 'income' ? 'checked' : '' }}>
+                                           {{ old('type', $transaction->type) == 'income' ? 'checked' : '' }}>
                                     <label class="btn btn-outline-success rounded-end-3" for="income"
                                            style="border-radius: 0 12px 12px 0 !important;">
                                         <i class="fas fa-plus-circle me-2"></i>Income
@@ -95,8 +87,8 @@
                                         <i class="fas fa-dollar-sign text-muted"></i>
                                     </span>
                                     <input type="number" class="form-control border-start-0 ps-0 @error('amount') is-invalid @enderror"
-                                           id="amount" name="amount" value="{{ old('amount') }}" step="0.01" min="0" placeholder="0.00"
-                                           style="border-radius: 0 12px 12px 0; border-left: none;">
+                                           id="amount" name="amount" value="{{ old('amount', $transaction->amount) }}" step="0.01" min="0" placeholder="0.00"
+                                           style="border-radius: 0 12px 12px 0; border-left: none;" required>
                                     @error('amount')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
@@ -115,10 +107,10 @@
                                 </span>
                                 @php
                                     $groupedCategories = $categories->groupBy(fn ($category) => $category->type ?? 'uncategorized');
-                                    $selectedCategory = old('category_id');
+                                    $selectedCategory = old('category_id', $transaction->category_id);
                                 @endphp
                                 <select class="form-select border-start-0 ps-0 @error('category_id') is-invalid @enderror"
-                                        id="category_id" name="category_id" {{ $categories->isEmpty() ? 'disabled' : '' }}
+                                        id="category_id" name="category_id"
                                         style="border-radius: 0 12px 12px 0; border-left: none;" required>
                                     <option value="">Select a category</option>
                                     @forelse($groupedCategories as $type => $typeCategories)
@@ -143,47 +135,32 @@
 
                         <!-- Date Field -->
                         <div class="mb-4">
-                            <label for="date" class="form-label fw-semibold">
+                            <label for="transaction_date" class="form-label fw-semibold">
                                 Date <span class="text-danger">*</span>
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0" style="border-radius: 12px 0 0 12px;">
                                     <i class="fas fa-calendar text-muted"></i>
                                 </span>
-                                <input type="date" class="form-control border-start-0 ps-0 @error('date') is-invalid @enderror"
-                                       id="date" name="date" value="{{ old('date', now()->format('Y-m-d')) }}"
+                                <input type="date" class="form-control border-start-0 ps-0 @error('transaction_date') is-invalid @enderror"
+                                       id="transaction_date" name="transaction_date"
+                                       value="{{ old('transaction_date', $transaction->transaction_date?->format('Y-m-d') ?? $transaction->created_at->format('Y-m-d')) }}"
+                                       max="{{ now()->format('Y-m-d') }}"
                                        style="border-radius: 0 12px 12px 0; border-left: none;" required>
-                                @error('date')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <!-- Receipt Field -->
-                        <div class="mb-4">
-                            <label for="receipt" class="form-label fw-semibold">Receipt (optional)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0" style="border-radius: 12px 0 0 12px;">
-                                    <i class="fas fa-receipt text-muted"></i>
-                                </span>
-                                <input type="file" class="form-control border-start-0 ps-0 @error('receipt') is-invalid @enderror"
-                                       id="receipt" name="receipt" accept="image/*"
-                                       style="border-radius: 0 12px 12px 0; border-left: none;">
-                                @error('receipt')
+                                @error('transaction_date')
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <div class="form-text">
-                                Upload a bill or receipt image (JPG, PNG, etc.)
-                            </div>
                         </div>
 
-                        <!-- Submit Button -->
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg shadow-sm {{ $categories->isEmpty() ? 'disabled' : '' }}"
-                                    style="border-radius: 12px; background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); border: none;">
-                                <i class="fas fa-save me-2"></i>Add Transaction
+                        <!-- Buttons -->
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg flex-grow-1" style="border-radius: 12px;">
+                                <i class="fas fa-save me-2"></i>Update Transaction
                             </button>
+                            <a href="{{ route('user.transactions') }}" class="btn btn-outline-secondary btn-lg" style="border-radius: 12px;">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
                         </div>
                     </form>
                 </div>
@@ -192,80 +169,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            const typeInputs = document.querySelectorAll('input[name="type"]');
-            const categorySelect = document.getElementById('category_id');
-
-            if (!typeInputs.length || !categorySelect) {
-                return;
-            }
-
-            const defaultOption = categorySelect.querySelector('option[value=""]');
-            const categoryOptions = Array.from(categorySelect.querySelectorAll('option[data-type]'));
-
-            const syncCategoryOptions = () => {
-                const selectedType = document.querySelector('input[name="type"]:checked').value;
-                let hasVisibleOption = false;
-
-                categoryOptions.forEach(option => {
-                    const optionType = option.dataset.type || 'uncategorized';
-                    const shouldShow = optionType === selectedType || optionType === 'uncategorized';
-                    option.hidden = !shouldShow;
-                    option.disabled = !shouldShow;
-                    if (shouldShow && option.value === categorySelect.value) {
-                        hasVisibleOption = true;
-                    }
-                });
-
-                if (!hasVisibleOption) {
-                    categorySelect.value = '';
-                }
-
-                if (defaultOption) {
-                    defaultOption.hidden = false;
-                    defaultOption.disabled = false;
-                }
-            };
-
-            typeInputs.forEach(input => {
-                input.addEventListener('change', syncCategoryOptions);
-            });
-            syncCategoryOptions();
-        });
-    </script>
-@endpush
-
-@push('styles')
-<style>
-.btn-outline-danger, .btn-outline-success {
-    border-width: 2px;
-}
-
-.btn-check:checked + .btn-outline-danger {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
-
-.btn-check:checked + .btn-outline-success {
-    background-color: #198754;
-    border-color: #198754;
-}
-
-.card {
-    backdrop-filter: blur(10px);
-}
-
-.input-group-text {
-    background: rgba(255, 255, 255, 0.8) !important;
-    backdrop-filter: blur(10px);
-}
-
-.form-control:focus, .form-select:focus {
-    box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.25);
-    border-color: #14b8a6;
-}
-</style>
-@endpush

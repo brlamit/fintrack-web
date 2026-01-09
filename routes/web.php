@@ -132,6 +132,9 @@ Route::delete('/goals/{goal}', [UserController::class, 'destroyGoal'])->name('us
     // User transactions
     Route::get('/transactions', [UserController::class, 'transactions'])->name('user.transactions');
     Route::get('/transactions/create', [UserController::class, 'createTransaction'])->name('user.transactions.create');
+    Route::get('/transactions/{transaction}/edit', [\App\Http\Controllers\Web\TransactionController::class, 'edit'])->name('user.transaction.edit');
+    Route::put('/transactions/{transaction}', [\App\Http\Controllers\Web\TransactionController::class, 'update'])->name('user.transaction.update');
+    Route::delete('/transactions/{transaction}', [\App\Http\Controllers\Web\TransactionController::class, 'destroy'])->name('user.transaction.destroy');
     // Web view for single transaction
     Route::get('/transactions/{transaction}/view', [\App\Http\Controllers\Web\TransactionController::class, 'show'])->name('user.transaction.show');
     Route::post('/transactions', [UserController::class, 'storeTransaction'])->name('user.transactions.store');

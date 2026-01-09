@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
                     <h5 class="mb-0">Edit Profile Information</h5>
                 </div>
                 <div class="card-body">
@@ -92,7 +92,7 @@
                         <hr>
 
                         <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); border: none;">
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
                             <a href="{{ route('user.profile') }}" class="btn btn-outline-secondary">
