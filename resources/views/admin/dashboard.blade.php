@@ -5,7 +5,7 @@
 @push('styles')
 <style>
     .dashboard-hero {
-        background: linear-gradient(135deg, #1e3a8a, #1d4ed8 55%, #22d3ee);
+        background: linear-gradient(135deg, #134e4a, #0f766e 55%, #0ea5e9);
         color: #ffffff;
         border: none;
         overflow: hidden;
@@ -26,6 +26,21 @@
     .dashboard-hero .card-body {
         position: relative;
         z-index: 1;
+    }
+    .hero-actions {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        z-index: 10;
+        display: flex;
+        gap: 0.5rem;
+    }
+    @media (max-width: 991.98px) {
+        .hero-actions {
+            position: static;
+            margin-top: 1.5rem;
+            width: 100%;
+        }
     }
     .stat-card {
         border: none;
@@ -49,13 +64,13 @@
         z-index: 1;
     }
     .icon-wrapper {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.1rem;
     }
     .icon-wrapper.accent-primary {
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.32));
@@ -74,10 +89,10 @@
         color: #b45309;
     }
     .badge-trend {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 600;
         border-radius: 999px;
-        padding: 0.25rem 0.75rem;
+        padding: 0.15rem 0.6rem;
     }
     .badge-trend.up {
         background-color: rgba(34, 197, 94, 0.18);
@@ -139,15 +154,37 @@
         width: 100% !important;
         height: 100% !important;
     }
+    .category-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .category-legend::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .category-legend::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .category-legend::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.2);
+        border-radius: 10px;
+    }
+
     .category-legend .legend-item {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 0.65rem 0.85rem;
-        border-radius: 0.85rem;
-        background-color: rgba(148, 163, 184, 0.12);
-        margin-bottom: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        transition: background-color 0.2s ease;
     }
+
+    .category-legend .legend-item:hover {
+        background-color: rgba(15, 23, 42, 0.05);
+    }
+
     .category-legend .legend-item:last-child {
         margin-bottom: 0;
     }
@@ -158,13 +195,14 @@
         margin-right: 0.6rem;
     }
     .avatar-circle {
-        width: 42px;
-        height: 42px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 600;
+        font-size: 0.85rem;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(37, 99, 235, 0.08));
         color: #1d4ed8;
     }
@@ -197,8 +235,8 @@
         position: absolute;
         left: 0.55rem;
         top: 0.4rem;
-        width: 1.1rem;
-        height: 1.1rem;
+        width: 0.85rem;
+        height: 0.85rem;
         border-radius: 50%;
     }
     .timeline-dot.income {
@@ -254,20 +292,22 @@
     $latestMonthlyIncome = !empty($monthlyIncomeSeries) ? $monthlyIncomeSeries[array_key_last($monthlyIncomeSeries)] : 0;
 @endphp
 <div class="card dashboard-hero shadow-sm mb-4">
-    <div class="card-body p-4 p-lg-5">
+    <div class="card-body p-4 position-relative">
+        <div class="hero-actions">
+            <a href="{{ route('admin.reports') }}" class="btn btn-light shadow-sm d-flex align-items-center gap-2">
+                <i class="fas fa-chart-line"></i>
+                <span>View Reports</span>
+            </a>
+            <a href="{{ route('admin.groups.index') }}" class="btn btn-outline-light shadow-sm d-flex align-items-center gap-2">
+                <i class="fas fa-users-cog"></i>
+                <span>Manage Groups</span>
+            </a>
+        </div>
         <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
             <div>
                 <span class="badge bg-white text-dark fw-semibold mb-3">ADMIN OVERVIEW</span>
                 <h1 class="h2 fw-semibold mb-2">Welcome back, {{ auth()->user()->name }}.</h1>
                 <p class="mb-0 text-white-50">Monitor FinTrack performance, member engagement, and cash flow trends at a glance.</p>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('admin.reports') }}" class="btn btn-light btn-lg px-4 shadow-sm">
-                    <i class="fas fa-chart-line me-2"></i>View Reports
-                </a>
-                <a href="{{ route('admin.groups.index') }}" class="btn btn-outline-light btn-lg px-4 shadow-sm">
-                    <i class="fas fa-users-cog me-2"></i>Manage Groups
-                </a>
             </div>
         </div>
         <div class="d-flex flex-wrap align-items-center gap-3 mt-4 text-white-50 small">
@@ -311,33 +351,38 @@
             }
             $normalizedPercent = min(max(abs($percentValue), 0), 180);
         @endphp
-        <div class="col-xxl-3 col-md-6">
+        <div class="col-lg-3 col-md-6">
             <div class="card stat-card shadow-sm h-100">
-                <div class="card-body p-4">
+                <div class="card-body p-3">
                     <div class="d-flex align-items-start justify-content-between">
-                        <div>
-                            <span class="text-muted text-uppercase small fw-semibold">{{ $card['title'] }}</span>
-                            <h2 class="mt-2 mb-3 fw-bold">{{ $valueFormatted }}</h2>
-                            <div class="badge-trend {{ $badgeClass }} mb-2">{{ $percentFormatted }}</div>
-                            <div class="text-muted small">{{ $card['detail_text'] }}</div>
-                            @if(isset($card['trend']['comparison_label']))
-                                <div class="text-muted small">{{ $card['trend']['comparison_label'] }}</div>
-                            @endif
+                        <div class="flex-grow-1">
+                            <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.05em;">{{ $card['title'] }}</span>
+                            <h3 class="mt-1 mb-1 fw-bold tracking-tight">{{ $valueFormatted }}</h3>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <div class="badge-trend {{ $badgeClass }}">{{ $percentFormatted }}</div>
+                                @if(isset($card['trend']['comparison_label']))
+                                    <span class="text-muted" style="font-size: 0.7rem;">{{ $card['trend']['comparison_label'] }}</span>
+                                @endif
+                            </div>
+                            
                             @if(isset($card['net']))
                                 @php
                                     $netCurrent = $card['net']['current'];
                                     $netLabelClass = $netCurrent >= 0 ? 'text-success' : 'text-danger';
                                 @endphp
-                                <div class="small mt-3">
-                                    <span class="text-muted">Net cashflow:</span>
+                                <div class="mt-2 pt-2 border-top" style="font-size: 0.75rem;">
+                                    <span class="text-muted">Net:</span>
                                     <span class="fw-semibold {{ $netLabelClass }}">{{ ($netCurrent >= 0 ? '+' : '-') . '$' . number_format(abs($netCurrent), 2) }}</span>
                                 </div>
+                            @else
+                                <div class="text-muted" style="font-size: 0.7rem;">{{ $card['detail_text'] }}</div>
                             @endif
-                            <div class="trend-progress progress mt-3">
+
+                            <div class="trend-progress progress mt-2" style="height: 4px;">
                                 <div class="progress-bar {{ $direction === 'down' ? 'bg-danger' : 'bg-success' }}" role="progressbar" style="width: {{ min($normalizedPercent, 100) }}%"></div>
                             </div>
                         </div>
-                        <div class="icon-wrapper accent-{{ $card['accent'] }} ms-3">
+                        <div class="icon-wrapper accent-{{ $card['accent'] }} ms-2 flex-shrink-0">
                             <i class="fas {{ $card['icon'] }}"></i>
                         </div>
                     </div>
@@ -348,7 +393,7 @@
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-xxl-8">
+    <div class="col-lg-8">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white border-0 pb-0">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -398,7 +443,7 @@
             </div>
         </div>
     </div>
-    <div class="col-xxl-4">
+    <div class="col-lg-4">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
                 <div>
@@ -408,10 +453,14 @@
             </div>
             <div class="card-body">
                 @if(!empty($categoryLabels))
-                    <div style="height: 260px;">
+                    <div class="position-relative" style="height: 220px;">
                         <canvas id="admin-category-chart"></canvas>
+                        <div class="position-absolute top-50 start-50 translate-middle text-center">
+                            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.05em;">Total</div>
+                            <div class="fw-bold text-dark" style="font-size: 1.15rem;">${{ number_format($categoryTotal, 0) }}</div>
+                        </div>
                     </div>
-                    <div class="category-legend mt-4">
+                    <div class="category-legend mt-3" style="max-height: 250px; overflow-y: auto;">
                         @foreach($categoryLabels as $index => $label)
                             @php
                                 $value = $categoryValues[$index] ?? 0;
@@ -419,13 +468,20 @@
                                 $percentage = $categoryTotal > 0 ? ($value / $categoryTotal) * 100 : 0;
                             @endphp
                             <div class="legend-item">
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center flex-grow-1">
                                     <span class="color-dot" style="background-color: {{ $color }};"></span>
-                                    <span class="fw-semibold">{{ $label }}</span>
-                                </div>
-                                <div class="text-end">
-                                    <div class="fw-semibold">${{ number_format($value, 2) }}</div>
-                                    <small class="text-muted">{{ number_format($percentage, 1) }}%</small>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-medium small text-dark">{{ $label }}</span>
+                                            <span class="fw-semibold small">${{ number_format($value, 2) }}</span>
+                                        </div>
+                                        <div class="progress" style="height: 4px;">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ $percentage }}%; background-color: {{ $color }}; opacity: 0.8;" aria-valuenow="{{ $percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                    <div class="ms-3 text-end" style="min-width: 45px;">
+                                        <span class="text-muted" style="font-size: 0.75rem;">{{ number_format($percentage, 0) }}%</span>
+                                    </div>
                                 </div>
                             </div>                            
                         @endforeach
@@ -821,14 +877,16 @@
                     datasets: [{
                         data: categoryData.values,
                         backgroundColor: categoryData.colors,
-                        borderWidth: 2,
-                        borderColor: '#ffffff',
+                        borderWidth: 0,
+                        hoverOffset: 12,
+                        borderRadius: 6
                     }],
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '65%',
+                    cutout: '82%',
+                    spacing: 4,
                     plugins: {
                         legend: { display: false },
                         tooltip: {

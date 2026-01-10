@@ -16,11 +16,11 @@
                         <div class="card-body text-center pt-4">
                     <!-- Avatar Upload -->
                     <div class="position-relative d-inline-block mb-4">
-                        <form id="avatar-form" action="{{ route('user.avatar.update') }}" method="POST" enctype="multipart/form-data">
+                        <form id="avatar-form" action="{{ route('admin.avatar.update') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <input type="file" name="avatar" id="avatar-input" accept="image/*" class="d-none">
                             <label for="avatar-input" class="cursor-pointer">
-                                <img src="{{ auth()->user()->avatar }}?v={{ auth()->user()->updated_at->timestamp }}"
+                                <img src="{{ auth()->user()->avatar }}?v={{ auth()->user()->updated_at?->timestamp ?? time() }}"
                                      alt="Profile Picture"
                                      class="rounded-circle shadow-lg border border-5 border-white"
                                      width="140" height="140"
@@ -70,13 +70,13 @@
                     <hr class="my-4">
 
                     <div class="d-grid gap-2">
-                        <a href="{{ route('user.edit') }}" class="btn btn-primary btn-lg">
+                        <a href="{{ route('admin.profile.edit') }}" class="btn btn-primary btn-lg">
                             <i class="fas fa-edit me-2"></i>Edit Profile
                         </a>
-                        <a href="{{ route('user.security') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('admin.security') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-shield-alt me-2"></i>Security
                         </a>
-                        <a href="{{ route('user.preferences') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('admin.preferences') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-cog me-2"></i>Preferences
                         </a>
                     </div>
