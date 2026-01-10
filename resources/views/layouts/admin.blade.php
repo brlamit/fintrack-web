@@ -12,7 +12,10 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container mt-4">
-            <a class="navbar-brand" href="{{ route('admin.dashboard') }}">FinTrack Admin</a>
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('admin.dashboard') }}">
+                <img src="{{ asset('images/logo.png') }}" alt="FinTrack Logo" width="32" height="32" class="rounded-circle" onerror="this.src='https://ui-avatars.com/api/?name=FT&background=14b8a6&color=fff'">
+                FinTrack Admin
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

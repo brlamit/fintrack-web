@@ -3,6 +3,10 @@
 @section('title', 'Group Transactions - ' . $group->name)
 
 @section('content')
+@php
+    $currentMember = $group->members->firstWhere('user_id', auth()->id());
+    $isAdmin = $currentMember && $currentMember->role === 'admin';
+@endphp
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
@@ -58,8 +62,34 @@
                                 <td>{{ $transaction->category->name ?? '—' }}</td>
                                 <td class="text-end {{ $isIncome ? 'text-success' : 'text-danger' }}">${{ number_format($transaction->amount, 2) }}</td>
                                 <td class="text-end text-muted small">{{ $date?->format('M d, Y') ?? '—' }}</td>
-                                <td>
-                                    <a href="{{ route('user.transaction.show', $transaction) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <td class="text-end">
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a href="{{ route('user.transaction.show', $transaction) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </a>
+                                        @if($isAdmin || $transaction->user_id === auth()->id())
+                                            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editGroupTransactionModal" 
+                                                    data-transaction-id="{{ $transaction->id }}"
+                                                    data-group-id="{{ $group->id }}"
+                                                    data-description="{{ $transaction->description }}"
+                                                    data-total-amount="{{ $transaction->amount * $group->members->count() }}"
+                                                    data-category-id="{{ $transaction->category_id }}"
+                                                    data-type="{{ $transaction->type }}"
+                                                    data-date="{{ $date?->format('Y-m-d') }}"
+                                                    title="Edit Split">
+                                                <i class="fas fa-edit me-1"></i>
+                                            </button>
+                                            <form action="{{ route('user.transaction.destroy', $transaction) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this group transaction split?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Delete">
+                                                    <i class="fas fa-trash me-1"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -77,4 +107,6 @@
         </div>
     </div>
 </div>
+
+@include('user.groups.partials._edit_transaction_modal')
 @endsection

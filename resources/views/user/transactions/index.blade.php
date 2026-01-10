@@ -126,12 +126,37 @@
                             </td>
                             <td>{{ $dateToShow?->format('M d, Y') }}</td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal" data-transaction-id="{{ $transaction->id }}" data-description="{{ $transaction->description }}" data-amount="{{ $transaction->amount }}" data-category-id="{{ $transaction->category_id }}" data-type="{{ $transaction->type }}" data-date="{{ $transaction->transaction_date?->format('Y-m-d') ?? $transaction->created_at->format('Y-m-d') }}">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-transaction-id="{{ $transaction->id }}" data-description="{{ $transaction->description }}" data-amount="{{ $transaction->amount }}" data-type="{{ $transaction->type }}" data-date="{{ $dateToShow?->format('M d, Y') }}" data-category="{{ $transaction->category?->name ?? 'N/A' }}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('user.transaction.show', $transaction) }}" class="btn btn-sm btn-outline-info rounded-pill px-3" title="View details">
+                                        <i class="fas fa-eye me-1"></i> View
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editModal" 
+                                            data-transaction-id="{{ $transaction->id }}"
+                                            data-description="{{ $transaction->description }}"
+                                            data-amount="{{ $transaction->amount }}"
+                                            data-category-id="{{ $transaction->category_id }}"
+                                            data-type="{{ $transaction->type }}"
+                                            data-date="{{ $dateToShow?->format('Y-m-d') }}"
+                                            data-receipt-url="{{ $transaction->receipt?->url }}"
+                                            title="Quick Edit">
+                                        <i class="fas fa-edit me-1"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deleteModal" 
+                                            data-transaction-id="{{ $transaction->id }}"
+                                            data-description="{{ $transaction->description }}"
+                                            data-amount="{{ $transaction->amount }}"
+                                            data-type="{{ $transaction->type }}"
+                                            data-category="{{ $transaction->category->name ?? 'None' }}"
+                                            data-date="{{ $dateToShow?->format('M d, Y') }}"
+                                            data-group-id="{{ $transaction->group_id }}"
+                                            title="Delete">
+                                        <i class="fas fa-trash me-1"></i> Delete
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -150,152 +175,16 @@
     @if($transactions->hasPages())
         <div class="d-flex justify-content-center mt-4">
             {{ $transactions->links() }}
-        </div>
+</div>
     @endif
 </div>
 
-<!-- Edit Modal - Outside container for proper positioning -->
-<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" style=" margin-top: 80%;  transform: translateY(45px);">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; background-color: #ffffff; color: #111827;">
-                <div class="modal-header border-0" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);">
-                    <h5 class="modal-title text-white fw-bold" style="font-size: 1.3rem;">
-                        <i class="fas fa-edit me-2"></i>Edit Transaction
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <form id="editTransactionForm" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        @method('PUT')
+<!-- Modals -->
+@include('user.transactions.partials._edit_modal')
+@include('user.transactions.partials._delete_modal')
 
-                        <!-- Description Field -->
-                        <div class="mb-3">
-                            <label for="editDescription" class="form-label fw-semibold" style="color: #111827;">Description</label>
-                            <input type="text" class="form-control" id="editDescription" name="description" required style="background-color: #ffffff; color: #111827; border-color: #d1d5db;">
-                        </div>
-
-                        <!-- Type and Amount Row -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold" style="color: #111827;">Type</label>
-                                <div class="btn-group w-100" role="group">
-                                    <input type="radio" class="btn-check" name="type" id="editExpense" value="expense">
-                                    <label class="btn btn-outline-danger rounded-start-3" for="editExpense" style="border-radius: 12px 0 0 12px !important;">
-                                        <i class="fas fa-minus-circle me-2"></i>Expense
-                                    </label>
-                                    <input type="radio" class="btn-check" name="type" id="editIncome" value="income">
-                                    <label class="btn btn-outline-success rounded-end-3" for="editIncome" style="border-radius: 0 12px 12px 0 !important;">
-                                        <i class="fas fa-plus-circle me-2"></i>Income
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="editAmount" class="form-label fw-semibold" style="color: #111827;">Amount</label>
-                                <input type="number" class="form-control" id="editAmount" name="amount" step="0.01" min="0" required style="background-color: #ffffff; color: #111827; border-color: #d1d5db;">
-                            </div>
-                        </div>
-
-                        <!-- Category Field -->
-                        <div class="mb-3">
-                            <label for="editCategory" class="form-label fw-semibold" style="color: #111827;">Category</label>
-                            <select class="form-select" id="editCategory" name="category_id" required style="background-color: #ffffff; color: #111827; border-color: #d1d5db;">
-                                <option value="">Select a category</option>
-                                @php
-                                    $groupedCategories = $categories->groupBy('type');
-                                @endphp
-                                @foreach($groupedCategories as $type => $typeCategories)
-                                    <optgroup label="{{ ucfirst($type ?? 'Uncategorized') }}">
-                                        @foreach($typeCategories as $category)
-                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Date Field -->
-                        <div class="mb-3">
-                            <label for="editDate" class="form-label fw-semibold" style="color: #111827;">Date</label>
-                            <input type="date" class="form-control" id="editDate" name="transaction_date" max="{{ now()->format('Y-m-d') }}" required style="background-color: #ffffff; color: #111827; border-color: #d1d5db;">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer border-0 p-4">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" form="editTransactionForm" class="btn btn-primary" style="background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%); border: none;">
-                        <i class="fas fa-save me-2"></i>Update Transaction
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered" style=" margin-top: 80%;  transform: translateY(40px);">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
-                <div class="modal-header border-0 bg-danger bg-opacity-10">
-                    <h5 class="modal-title text-danger fw-bold">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Delete Transaction
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <p class="text-muted mb-3">Review the details below before deleting:</p>
-                    
-                    <div class="card bg-light border-0 mb-3">
-                        <div class="card-body">
-                            <div class="row mb-2">
-                                <div class="col-6">
-                                    <small class="text-muted d-block">Type</small>
-                                    <strong id="deleteType">-</strong>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <small class="text-muted d-block">Amount</small>
-                                    <strong id="deleteAmount" class="text-danger">-</strong>
-                                </div>
-                            </div>
-                            <hr class="my-2">
-                            <div class="row mb-2">
-                                <div class="col-6">
-                                    <small class="text-muted d-block">Category</small>
-                                    <strong id="deleteCategory">-</strong>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <small class="text-muted d-block">Date</small>
-                                    <strong id="deleteDate">-</strong>
-                                </div>
-                            </div>
-                            <hr class="my-2">
-                            <div>
-                                <small class="text-muted d-block">Description</small>
-                                <strong id="deleteDescription">-</strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-danger border-0" role="alert">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        <strong>Warning:</strong> This action cannot be undone.
-                    </div>
-                </div>
-                <div class="modal-footer border-0 p-4">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form id="deleteTransactionForm" method="POST" style="display:inline;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger">
-                            <i class="fas fa-trash me-2"></i>Delete Transaction
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <style>
-        /* Fix modal positioning to prevent overlap with header */
+<style>
+    /* Fix modal positioning to prevent overlap with header */
         .modal {
             z-index: 1050 !important;
             position: fixed !important;
@@ -354,45 +243,26 @@
         /* Ensure form controls are visible in modals */
         .modal-body .form-control,
         .modal-body .form-select {
-            background-color: #fff;
-            color: #212529;
-            border: 1px solid #dee2e6;
+            background-color: #fff !important;
+            color: #212529 !important;
+            border: 1px solid #dee2e6 !important;
         }
 
         .modal-body .form-control:focus,
         .modal-body .form-select:focus {
-            background-color: #fff;
-            color: #212529;
-            border-color: #14b8a6;
-            box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.25);
+            background-color: #fff !important;
+            color: #212529 !important;
+            border-color: #14b8a6 !important;
+            box-shadow: 0 0 0 0.2rem rgba(20, 184, 166, 0.25) !important;
         }
 
         .modal-body .form-label {
-            color: #212529;
-            font-weight: 600;
-        }
-
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .modal-body .form-control,
-            .modal-body .form-select {
-                background-color: #2d2d2d;
-                color: #f1f5f9;
-                border-color: #444;
-            }
-
-            .modal-body .form-control:focus,
-            .modal-body .form-select:focus {
-                background-color: #2d2d2d;
-                color: #f1f5f9;
-            }
-
-            .modal-body .form-label {
-                color: #f1f5f9;
-            }
+            color: #212529 !important;
+            font-weight: 600 !important;
         }
     </style>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -451,8 +321,7 @@
                     const categoryId = button.getAttribute('data-category-id');
                     const type = button.getAttribute('data-type');
                     const date = button.getAttribute('data-date');
-
-                    console.log('Edit modal opened:', {transactionId, description, amount, categoryId, type, date});
+                    const receiptUrl = button.getAttribute('data-receipt-url');
 
                     // Update form fields
                     const descInput = document.getElementById('editDescription');
@@ -461,6 +330,8 @@
                     const dateInput = document.getElementById('editDate');
                     const incomeRadio = document.getElementById('editIncome');
                     const expenseRadio = document.getElementById('editExpense');
+                    const receiptPreview = document.getElementById('editReceiptPreview');
+                    const receiptImage = document.getElementById('editReceiptImage');
 
                     if (descInput) descInput.value = description || '';
                     if (amountInput) amountInput.value = amount || '';
@@ -474,18 +345,23 @@
                         expenseRadio.checked = true;
                     }
 
+                    // Handle Receipt Preview
+                    if (receiptUrl && receiptPreview && receiptImage) {
+                        receiptImage.src = receiptUrl;
+                        receiptPreview.classList.remove('d-none');
+                    } else if (receiptPreview) {
+                        receiptPreview.classList.add('d-none');
+                    }
+
                     // Update form action URL
                     const form = document.getElementById('editTransactionForm');
                     if (form) {
                         form.action = `/transactions/${transactionId}`;
-                        console.log('Form action set to:', form.action);
                     }
                 });
             }
-        });
 
-        // Handle Delete Modal
-        document.addEventListener('DOMContentLoaded', function() {
+            // Handle Delete Modal
             const deleteModal = document.getElementById('deleteModal');
             if (deleteModal) {
                 deleteModal.addEventListener('show.bs.modal', function (event) {
@@ -496,8 +372,7 @@
                     const type = button.getAttribute('data-type');
                     const date = button.getAttribute('data-date');
                     const category = button.getAttribute('data-category');
-
-                    console.log('Delete modal opened:', {transactionId, description, amount, type, date, category});
+                    const groupId = button.getAttribute('data-group-id');
 
                     // Update delete modal content
                     const typeEl = document.getElementById('deleteType');
@@ -505,18 +380,26 @@
                     const categoryEl = document.getElementById('deleteCategory');
                     const dateEl = document.getElementById('deleteDate');
                     const descEl = document.getElementById('deleteDescription');
+                    const groupWarning = document.getElementById('groupDeleteWarning');
 
                     if (typeEl) typeEl.textContent = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'N/A';
                     if (amountEl) amountEl.textContent = '$' + parseFloat(amount || 0).toFixed(2);
                     if (categoryEl) categoryEl.textContent = category || 'N/A';
                     if (dateEl) dateEl.textContent = date || 'N/A';
                     if (descEl) descEl.textContent = description || 'N/A';
+                    
+                    if (groupWarning) {
+                        if (groupId && groupId !== 'null' && groupId !== '') {
+                            groupWarning.classList.remove('d-none');
+                        } else {
+                            groupWarning.classList.add('d-none');
+                        }
+                    }
 
                     // Update form action URL
                     const form = document.getElementById('deleteTransactionForm');
                     if (form) {
                         form.action = `/transactions/${transactionId}`;
-                        console.log('Delete form action set to:', form.action);
                     }
                 });
             }

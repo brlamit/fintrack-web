@@ -135,6 +135,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Group transactions JSON for mobile/web API consumers
     Route::get('groups/{group}/transactions', [GroupController::class, 'transactions']);
+    
+    // Group transaction management (update/delete)
+    Route::put('groups/{group}/transactions/{transaction}', [GroupController::class, 'updateTransaction']);
+    Route::delete('groups/{group}/transactions/{transaction}', [GroupController::class, 'deleteTransaction']);
 
 
     // -------------------------------------------------------

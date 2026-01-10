@@ -2,28 +2,26 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Receipt;
-use App\Services\ReceiptOcrService;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
-class ReceiptController extends Controller
+class ReportController extends Controller
 {
-    public function __construct(private readonly ReceiptOcrService $receiptOcrService)
-    {
-    }
     /**
-     * Display a listing of the user's receipts.
+     * Get spending report.
      */
-    public function index(Request $request): JsonResponse
+    public function spending(Request $request): JsonResponse
     {
+        $user = $request->user();
         $validator = Validator::make($request->all(), [
-            'page' => 'nullable|integer|min:1',
-            'per_page' => 'nullable|integer|min:1|max:100',
-            'processed' => 'nullable|boolean',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'group_by' => 'nullable|in:category,date,month',
+            'category_id' => 'nullable|exists:categories,id',
         ]);
 
         if ($validator->fails()) {
@@ -34,79 +32,117 @@ class ReceiptController extends Controller
             ], 422);
         }
 
-        $query = Receipt::where('user_id', auth()->id());
+        $startDate = $request->start_date ? Carbon::parse($request->start_date) : now()->startOfMonth();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date) : now()->endOfMonth();
+        $groupBy = $request->group_by ?? 'category';
 
-        if ($request->has('processed')) {
-            $query->where('processed', $request->boolean('processed'));
+        $query = Transaction::where('user_id', auth()->id())
+            ->whereBetween('transaction_date', [$startDate, $endDate]);
+
+        if ($request->category_id) {
+            $query->where('category_id', $request->category_id);
         }
 
-        $receipts = $query->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 20));
+        $report = [];
 
-        return response()->json([
-            'success' => true,
-            'data' => $receipts,
-        ]);
-    }
+        // Capture totals for the selected period
+        $totalExpenses = (clone $query)->where('type', 'expense')->sum('amount');
+        $totalIncome = (clone $query)->where('type', 'income')->sum('amount');
+        $totalNet = $totalIncome - $totalExpenses;
+        $transactionCount = (clone $query)->count();
 
-    /**
-     * Generate presigned URL for receipt upload.
-     */
-    public function presign(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'filename' => 'required|string|max:255',
-            'mime_type' => 'required|string|max:100',
-            'size' => 'required|integer|min:1|max:10485760', // 10MB max
-        ]);
+        switch ($groupBy) {
+            case 'category':
+                $report = (clone $query)->where('type', 'expense')
+                    ->with('category')
+                    ->selectRaw('category_id, SUM(amount) as total')
+                    ->groupBy('category_id')
+                    ->orderBy('total', 'desc')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'category' => $item->category,
+                            'total' => $item->total,
+                            'percentage' => 0, // Will be calculated below
+                        ];
+                    });
+                break;
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+            case 'date':
+                $report = $query->selectRaw('transaction_date::date as date, 
+                    SUM(CASE WHEN type = \'income\' THEN amount ELSE 0 END) as income,
+                    SUM(CASE WHEN type = \'expense\' THEN amount ELSE 0 END) as expense')
+                    ->groupBy('date')
+                    ->orderBy('date')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'date' => $item->date,
+                            'income' => (float)$item->income,
+                            'expense' => (float)$item->expense,
+                            'total' => (float)$item->expense,
+                        ];
+                    });
+                break;
+
+            case 'month':
+                $report = $query->selectRaw('EXTRACT(YEAR FROM transaction_date) as year, EXTRACT(MONTH FROM transaction_date) as month, 
+                    SUM(CASE WHEN type = \'income\' THEN amount ELSE 0 END) as income,
+                    SUM(CASE WHEN type = \'expense\' THEN amount ELSE 0 END) as expense')
+                    ->groupBy('year', 'month')
+                    ->orderBy('year')
+                    ->orderBy('month')
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'year' => (int)$item->year,
+                            'month' => (int)$item->month,
+                            'income' => (float)$item->income,
+                            'expense' => (float)$item->expense,
+                            'total' => (float)$item->expense,
+                        ];
+                    });
+                break;
         }
 
-        $filename = Str::uuid() . '_' . $request->filename;
-        $path = 'receipts/' . auth()->id() . '/' . $filename;
-
-        // Validate configured disk exists, fallback to 'public'
-        $disk = config('filesystems.default');
-        $disks = array_keys(config('filesystems.disks', []));
-        if (!in_array($disk, $disks, true)) {
-            $disk = 'public';
-        }
-
-        // Generate a presigned URL if supported by disk, otherwise return a storage key
-        try {
-            $presignedUrl = Storage::disk($disk)->temporaryUrl(
-                $path,
-                now()->addMinutes(15),
-                ['PutObject', 'PutObjectAcl']
-            );
-        } catch (\Throwable $e) {
-            // Some adapters may not support temporaryUrl; return the storage key instead
-            $presignedUrl = null;
+        // Calculate percentages for category grouping
+        if ($groupBy === 'category' && $report->isNotEmpty()) {
+            $totalAmount = $report->sum('total');
+            $report = $report->map(function ($item) use ($totalAmount) {
+                $item['percentage'] = $totalAmount > 0 ? round(($item['total'] / $totalAmount) * 100, 2) : 0;
+                return $item;
+            });
         }
 
         return response()->json([
             'success' => true,
             'data' => [
-                'upload_url' => $presignedUrl,
-                'key' => $path,
-                'filename' => $filename,
+                'period' => [
+                    'start_date' => $startDate->toDateString(),
+                    'end_date' => $endDate->toDateString(),
+                ],
+                'group_by' => $groupBy,
+                'report' => $report,
+                'summary' => [
+                    'total_expenses' => $totalExpenses,
+                     'total_income' => $totalIncome,
+                    'net_total' => $totalNet,
+                    'transaction_count' => $transactionCount,
+                ],
             ],
         ]);
     }
 
     /**
-     * Directly upload a receipt file (for mobile clients) and run OCR.
+     * Export report.
      */
-    public function uploadDirect(Request $request): JsonResponse
+    public function export(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'receipt' => 'required|file|image|max:5120', // 5MB
+            'format' => 'required|in:pdf,csv,json',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'type' => 'required|in:spending,income,all',
         ]);
 
         if ($validator->fails()) {
@@ -117,328 +153,212 @@ class ReceiptController extends Controller
             ], 422);
         }
 
-        $file = $request->file('receipt');
-
-        // Store on configured disk (falling back to default/public when necessary)
-        $disk = env('FILESYSTEM_DISK', config('filesystems.default'));
-        $disks = array_keys(config('filesystems.disks', []));
-        if (!in_array($disk, $disks, true)) {
-            $disk = config('filesystems.default');
-            if (!in_array($disk, $disks, true)) {
-                $disk = 'public';
-            }
-        }
-
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $path = $file->storeAs('receipts/' . auth()->id(), $filename, $disk);
-
-        // Build a public URL (or best-effort path) similar to group/personal flows
-        $pathToSave = $path;
-        $generated = null;
-        try {
-            $generated = Storage::disk($disk)->url($path);
-        } catch (\Throwable $e) {
-            $generated = null;
-        }
-
-        $diskConfig = config("filesystems.disks.{$disk}", []);
-        $diskUrl = $diskConfig['url'] ?? null;
-        $bucket = $diskConfig['bucket'] ?? env('SUPABASE_PUBLIC_BUCKET');
-
-        if (!empty($generated) && !empty($bucket) && strpos($generated, trim($bucket, '/')) === false) {
-            $generated = null;
-        }
-
-        if (empty($generated) && !empty($diskUrl)) {
-            $encodedKey = implode('/', array_map('rawurlencode', explode('/', $path)));
-            if (!empty($bucket)) {
-                $generated = rtrim($diskUrl, '/') . '/' . trim($bucket, '/') . '/' . ltrim($encodedKey, '/');
-            } else {
-                $generated = rtrim($diskUrl, '/') . '/' . ltrim($encodedKey, '/');
-            }
-        }
-
-        if (!empty($generated)) {
-            $pathToSave = $generated;
-        }
-
-        $receipt = Receipt::create([
-            'user_id' => auth()->id(),
-            'filename' => $filename,
-            'original_filename' => $file->getClientOriginalName(),
-            'mime_type' => $file->getClientMimeType(),
-            'path' => $pathToSave,
-            'size' => $file->getSize(),
-            'processed' => false,
-        ]);
-
-        // Run OCR so parsed JSON (including estimated_total) is available immediately
-        $this->receiptOcrService->process($receipt);
+        // TODO: Implement report export functionality
+        // This would generate PDF, CSV, or JSON files and return download URLs
 
         return response()->json([
             'success' => true,
-            'message' => 'Receipt uploaded successfully',
-            'data' => $receipt,
-        ], 201);
-    }
-
-    /**
-     * Complete receipt upload and create receipt record.
-     */
-    public function complete(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'key' => 'required|string|max:500',
-            'original_filename' => 'required|string|max:255',
-            'mime_type' => 'required|string|max:100',
-            'size' => 'required|integer|min:1|max:10485760',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        // Determine disk from env or config and verify file exists
-        $disk = env('FILESYSTEM_DISK', config('filesystems.default'));
-        $disks = array_keys(config('filesystems.disks', []));
-        if (!in_array($disk, $disks, true)) {
-            $disk = config('filesystems.default');
-            if (!in_array($disk, $disks, true)) {
-                $disk = 'public';
-            }
-        }
-
-        if (!Storage::disk($disk)->exists($request->key)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Uploaded file not found',
-            ], 404);
-        }
-
-        // Attempt to generate a public URL from the disk. If not possible, build from disk config url.
-        $pathToSave = $request->key;
-        $generated = null;
-        try {
-            $generated = Storage::disk($disk)->url($request->key);
-        } catch (\Throwable $e) {
-            $generated = null;
-        }
-
-        $diskConfig = config("filesystems.disks.{$disk}", []);
-        $diskUrl = $diskConfig['url'] ?? null;
-        $bucket = $diskConfig['bucket'] ?? env('SUPABASE_PUBLIC_BUCKET');
-
-        // If Storage returned a URL but it's missing the bucket segment, prefer constructing
-        // a URL that includes the bucket when we have the bucket configured.
-        if (!empty($generated) && !empty($bucket) && strpos($generated, trim($bucket, '/')) === false) {
-            $generated = null; // force rebuild below
-        }
-
-        if (empty($generated) && !empty($diskUrl)) {
-            // URL-encode each segment of the key to handle spaces and special chars
-            $encodedKey = implode('/', array_map('rawurlencode', explode('/', $request->key)));
-            if (!empty($bucket)) {
-                $generated = rtrim($diskUrl, '/') . '/' . trim($bucket, '/') . '/' . ltrim($encodedKey, '/');
-            } else {
-                $generated = rtrim($diskUrl, '/') . '/' . ltrim($encodedKey, '/');
-            }
-        }
-
-        if (!empty($generated)) {
-            $pathToSave = $generated;
-        }
-
-        $receipt = Receipt::create([
-            'user_id' => auth()->id(),
-            'filename' => basename($request->key),
-            'original_filename' => $request->original_filename,
-            'mime_type' => $request->mime_type,
-            'path' => $pathToSave,
-            'size' => $request->size,
-            'processed' => false,
-        ]);
-
-        // Perform OCR synchronously so that JSON data is available
-        $this->receiptOcrService->process($receipt);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Receipt uploaded successfully',
-            'data' => $receipt,
-        ], 201);
-    }
-
-    /**
-     * Display the specified receipt.
-     */
-    public function show(Receipt $receipt): JsonResponse
-    {
-        // Check if receipt belongs to authenticated user
-        if ($receipt->user_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Receipt not found',
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $receipt,
-        ]);
-    }
-
-    /**
-     * Return parsed OCR data for a receipt, including estimated total.
-     */
-    public function parsed(Receipt $receipt): JsonResponse
-    {
-        if ($receipt->user_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Receipt not found',
-            ], 404);
-        }
-
-        $parsed = $receipt->parsed_data ?? [];
-        $ocr = $receipt->ocr_data ?? null;
-        $estimatedTotal = is_array($parsed) && array_key_exists('estimated_total', $parsed)
-            ? $parsed['estimated_total']
-            : null;
-
-        return response()->json([
-            'success' => true,
+            'message' => 'Export functionality will be implemented',
             'data' => [
-                'estimated_total' => $estimatedTotal,
-                'parsed_data' => $parsed,
-                'ocr_data' => $ocr,
+                'format' => $request->get('format'),
+                'download_url' => 'https://example.com/download/report.pdf',
             ],
         ]);
     }
 
     /**
-     * Download the receipt file.
+     * Generate a simple balance sheet and return PDF download (or JSON).
      */
-    public function download(Receipt $receipt): JsonResponse
+    public function reportsheet(Request $request)
     {
-        // Check if receipt belongs to authenticated user
-        if ($receipt->user_id !== auth()->id()) {
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'format' => 'nullable|in:pdf,json',
+        ]);
+
+        if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Receipt not found',
-            ], 404);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
-        // Use the model accessor which normalizes the URL (includes bucket when configured)
-        $url = $receipt->url;
-        // If the stored value is not a full URL, try to generate a temporary URL from the configured disk
-        if (!(strpos($url, 'http://') === 0 || strpos($url, 'https://') === 0)) {
-            $disk = env('FILESYSTEM_DISK', config('filesystems.default'));
-            try {
-                $url = Storage::disk($disk)->temporaryUrl(
-                    $receipt->path,
-                    now()->addMinutes(5),
-                    ['GetObject']
-                );
-            } catch (\Throwable $e) {
-                try {
-                    $url = Storage::disk($disk)->url($receipt->path);
-                } catch (\Throwable $e) {
-                    $url = $receipt->path;
+        $startDate = $request->start_date ? Carbon::parse($request->start_date) : now()->startOfMonth();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date) : now()->endOfMonth();
+
+        $baseQuery = Transaction::where('user_id', auth()->id())
+            ->whereBetween('transaction_date', [$startDate, $endDate]);
+
+        $totalIncome = (clone $baseQuery)->where('type', 'income')->sum('amount');
+        $totalExpense = (clone $baseQuery)->where('type', 'expense')->sum('amount');
+
+        // For a simple balance-sheet-like view we still compute totals, but
+        // also compute opening balance (before period) and per-category statement
+        // lines so the PDF can show opening/debit/credit/closing like a bank
+        $assets = $totalIncome;
+        $liabilities = $totalExpense;
+        $equity = $assets - $liabilities;
+
+        // Opening balance before the period (income - expense prior to start)
+        $openingIncome = (clone $baseQuery)->where('transaction_date', '<', $startDate)->where('type', 'income')->sum('amount');
+        $openingExpense = (clone $baseQuery)->where('transaction_date', '<', $startDate)->where('type', 'expense')->sum('amount');
+        $opening_balance = (float) $openingIncome - (float) $openingExpense;
+
+        // Period totals grouped by category and type
+        $periodGrouped = (clone $baseQuery)
+            ->with('category')
+            ->selectRaw('category_id, type, SUM(amount) as total')
+            ->whereBetween('transaction_date', [$startDate, $endDate])
+            ->groupBy('category_id', 'type')
+            ->get();
+
+        // Opening grouped by category before the period
+        $openingGrouped = (clone $baseQuery)
+            ->with('category')
+            ->selectRaw('category_id, type, SUM(amount) as total')
+            ->where('transaction_date', '<', $startDate)
+            ->groupBy('category_id', 'type')
+            ->get();
+
+        // Build per-account (per-category) statement lines
+        $perAccount = [];
+        // seed openings
+        foreach ($openingGrouped as $row) {
+            $catName = $row->category?->name ?? 'Uncategorized';
+            if (!isset($perAccount[$catName])) {
+                $perAccount[$catName] = ['opening' => 0.0, 'debit' => 0.0, 'credit' => 0.0];
+            }
+            $amt = (float) $row->total;
+            if ($row->type === 'income' || strtolower($row->type) === 'credit') {
+                $perAccount[$catName]['opening'] += $amt;
+            } else {
+                $perAccount[$catName]['opening'] -= $amt;
+            }
+        }
+
+        // add period activity
+        foreach ($periodGrouped as $row) {
+            $catName = $row->category?->name ?? 'Uncategorized';
+            if (!isset($perAccount[$catName])) {
+                $perAccount[$catName] = ['opening' => 0.0, 'debit' => 0.0, 'credit' => 0.0];
+            }
+            $amt = (float) $row->total;
+            if ($row->type === 'income' || strtolower($row->type) === 'credit') {
+                $perAccount[$catName]['credit'] += $amt;
+            } else {
+                $perAccount[$catName]['debit'] += $amt;
+            }
+        }
+
+        // Convert to list for view and compute totals
+        $perAccountList = [];
+        $totalDebits = 0.0; $totalCredits = 0.0;
+        foreach ($perAccount as $cat => $vals) {
+            $opening = (float) ($vals['opening'] ?? 0.0);
+            $debit = (float) ($vals['debit'] ?? 0.0);
+            $credit = (float) ($vals['credit'] ?? 0.0);
+            $closing = $opening + $credit - $debit;
+            $perAccountList[] = [
+                'category' => $cat,
+                'opening' => $opening,
+                'debit' => $debit,
+                'credit' => $credit,
+                'closing' => $closing,
+            ];
+            $totalDebits += $debit;
+            $totalCredits += $credit;
+        }
+
+        $data = [
+            'period' => [
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ],
+            'assets' => (float) $assets,
+            'liabilities' => (float) $liabilities,
+            'equity' => (float) $equity,
+            'by_category' => $periodGrouped->map(function ($row) {
+                return [
+                    'category' => $row->category?->name ?? 'Uncategorized',
+                    'type' => $row->type,
+                    'total' => (float) $row->total,
+                ];
+            })->values(),
+            'opening_balance' => (float) $opening_balance,
+            'per_account' => $perAccountList,
+            'total_debits' => $totalDebits,
+            'total_credits' => $totalCredits,
+            'currency' => env('APP_CURRENCY', 'USD'),
+            // Transactions list for detailed statement (ordered by date asc)
+            'transactions' => [],
+        ];
+
+        // Build transaction list with running balance for the statement view
+        try {
+            $txs = Transaction::where('user_id', auth()->id())
+                ->whereBetween('transaction_date', [$startDate, $endDate])
+                ->orderBy('transaction_date', 'asc')
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $running = (float) $opening_balance;
+            $txList = [];
+
+            foreach ($txs as $tx) {
+                $amt = (float) $tx->amount;
+                $deposit = 0.0; $withdrawal = 0.0;
+                if (strtolower($tx->type) === 'income' || strtolower($tx->type) === 'credit') {
+                    $deposit = $amt;
+                    $running += $amt;
+                } else {
+                    $withdrawal = $amt;
+                    $running -= $amt;
                 }
+
+                $txList[] = [
+                    'date' => Carbon::parse($tx->transaction_date)->toDateString(),
+                    'description' => $tx->description ?? $tx->category?->name ?? 'Transaction',
+                    'withdrawal' => $withdrawal,
+                    'deposit' => $deposit,
+                    'balance' => $running,
+                ];
             }
-        }
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'download_url' => $url,
-                'filename' => $receipt->original_filename,
-                'mime_type' => $receipt->mime_type,
-            ],
-        ]);
-    }
-
-    /**
-     * Update the specified receipt.
-     */
-    public function update(Request $request, Receipt $receipt): JsonResponse
-    {
-        // Check if receipt belongs to authenticated user
-        if ($receipt->user_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Receipt not found',
-            ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'ocr_data' => 'nullable|array',
-            'parsed_data' => 'nullable|array',
-            'processed' => 'boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $receipt->update($request->only([
-            'ocr_data',
-            'parsed_data',
-            'processed',
-        ]));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Receipt updated successfully',
-            'data' => $receipt,
-        ]);
-    }
-
-    /**
-     * Remove the specified receipt.
-     */
-    public function destroy(Receipt $receipt): JsonResponse
-    {
-        // Check if receipt belongs to authenticated user
-        if ($receipt->user_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Receipt not found',
-            ], 404);
-        }
-
-        // Delete file from configured disk when possible
-        $disk = config('filesystems.default');
-
-        try {
-            if (strpos($receipt->path, 'http://') === 0 || strpos($receipt->path, 'https://') === 0) {
-                // Try to derive the storage key by stripping the disk url prefix
-                $diskUrl = config("filesystems.disks.{$disk}.url");
-                if (!empty($diskUrl) && strpos($receipt->path, $diskUrl) === 0) {
-                    $maybeKey = ltrim(substr($receipt->path, strlen($diskUrl)), '/');
-                    Storage::disk($disk)->delete($maybeKey);
-                }
-                // If we couldn't derive a key, skip deletion of remote object
-            } else {
-                Storage::disk($disk)->delete($receipt->path);
-            }
+            $data['transactions'] = $txList;
         } catch (\Throwable $e) {
-            // ignore deletion errors
+            // If anything goes wrong building the transactions list, leave it empty.
+            $data['transactions'] = [];
         }
 
-        $receipt->delete();
+        if ($request->get('format') === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+            ]);
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Receipt deleted successfully',
-        ]);
+        // Render PDF using a Blade view
+        try {
+            $pdf = Pdf::loadView('user.reports.report_sheet_pdf', $data);
+            $filename = sprintf('report_sheet_%s_to_%s.pdf', $startDate->toDateString(), $endDate->toDateString());
+            return $pdf->download($filename);
+        } catch (\Throwable $e) {
+            // If the client expects JSON, return JSON error (API clients)
+            if ($request->wantsJson() || $request->get('format') === 'json') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to generate PDF. Is the PDF package installed?',
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+
+            // For browser requests, fall back to rendering the HTML view so users
+            // can view/save the report manually. Also pass the error message so
+            // the UI can show a friendly banner.
+            $dataWithError = array_merge($data, ['pdf_error' => $e->getMessage()]);
+            return response()->view('user.reports.report_sheet_pdf', $dataWithError, 200);
+        }
     }
 }

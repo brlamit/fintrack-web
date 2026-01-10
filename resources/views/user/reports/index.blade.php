@@ -15,20 +15,32 @@
                 <div class="card-body">
                     <div class="row g-2 align-items-center">
                         <div class="col-auto">
-                            <label class="form-label small mb-0 text-white">From</label>
+                            <label class="form-label small mb-0 text-dark">From</label>
                             <input id="globalStart" type="date" class="form-control form-control-sm" value="{{ now()->startOfMonth()->toDateString() }}">
                         </div>
                         <div class="col-auto">
-                            <label class="form-label small mb-0 text-white">To</label>
+                            <label class="form-label small mb-0 text-dark">To</label>
                             <input id="globalEnd" type="date" class="form-control form-control-sm" value="{{ now()->endOfMonth()->toDateString() }}">
                         </div>
                         <div class="col-auto">
-                            <button id="generateAll" class="btn btn-light btn-sm mt-2">Generate</button>
+                            <label class="form-label small mb-0 text-dark">Category (Optional)</label>
+                            <select id="globalCategory" class="form-select form-select-sm">
+                                <option value="">All Categories</option>
+                                @foreach($categories as $c)
+                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button id="generateAll" class="btn btn-primary btn-sm mt-4 px-4 shadow-sm">
+                                <i class="fas fa-sync-alt me-1"></i> Update Reports
+                            </button>
                         </div>
                         <div class="col-auto ms-auto">
-                            <div class="btn-group mt-2">
-                                <button class="btn btn-outline-light btn-sm bg-black text-white" data-bs-toggle="modal" data-bs-target="#monthlyReport"><i class="fas fa-calendar"></i> Configure</button>
-                                <button class="btn btn-outline-light btn-sm bg-black text-white" data-bs-toggle="modal" data-bs-target="#reportSheetModal"><i class="fas fa-file-pdf"></i> Balance Sheet</button>
+                            <div class="btn-group mt-4">
+                                <button class="btn btn-outline-dark btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#reportSheetModal">
+                                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -39,20 +51,46 @@
 
     <!-- Summary cards -->
     <div class="row mb-4">
-        <div class="col-sm-4">
+        <div class="col-sm-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Total Income</div>
+                            <div id="summaryIncome" class="h4 mb-0 text-success">—</div>
+                        </div>
+                        <div><i class="fas fa-hand-holding-usd fa-2x text-success"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <div class="text-muted small">Total Expenses</div>
-                            <div id="summaryExpenses" class="h4 mb-0">—</div>
+                            <div id="summaryExpenses" class="h4 mb-0 text-danger">—</div>
                         </div>
                         <div><i class="fas fa-wallet fa-2x text-danger"></i></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-sm-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Net Balance</div>
+                            <div id="summaryNet" class="h4 mb-0">—</div>
+                        </div>
+                        <div><i class="fas fa-balance-scale fa-2x text-primary"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
@@ -60,33 +98,18 @@
                             <div class="text-muted small">Transactions</div>
                             <div id="summaryCount" class="h4 mb-0">—</div>
                         </div>
-                        <div><i class="fas fa-list fa-2x text-primary"></i></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="text-muted small">Net (Income − Expense)</div>
-                            <div id="summaryNet" class="h4 mb-0">—</div>
-                        </div>
-                        <div><i class="fas fa-balance-scale fa-2x text-success"></i></div>
+                        <div><i class="fas fa-list fa-2x text-info"></i></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Spending Overview -->
     <div class="row">
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Monthly Spending Trend</h6>
-                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#monthlyReport">Configure</button>
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">Monthly Financial Trend (Income vs Expense)</h6>
                 </div>
                 <div class="card-body">
                     <canvas id="monthlyChart" height="200"></canvas>
@@ -96,9 +119,8 @@
 
         <div class="col-md-6">
             <div class="card">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <div class="card-header bg-primary text-white">
                     <h6 class="mb-0">Spending by Category</h6>
-                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#categoryReport">Configure</button>
                 </div>
                 <div class="card-body">
                     <canvas id="categoryChart" height="200"></canvas>
@@ -110,9 +132,8 @@
     <div class="row mt-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                <div class="card-header bg-secondary text-white">
                     <h6 class="mb-0">Yearly Summary</h6>
-                    <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#yearlyReport">Configure</button>
                 </div>
                 <div class="card-body">
                     <canvas id="yearlyChart" height="80"></canvas>
@@ -124,98 +145,9 @@
 @endsection
 
 @section('modals')
-<!-- Monthly Report Modal -->
-<div class="modal fade" id="monthlyReport" tabindex="-1" aria-labelledby="monthlyReportLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="monthlyReportLabel">Monthly Report</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="monthlyReportForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Start date</label>
-                        <input type="date" name="start_date" class="form-control" value="{{ now()->startOfMonth()->toDateString() }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">End date</label>
-                        <input type="date" name="end_date" class="form-control" value="{{ now()->endOfMonth()->toDateString() }}">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Generate</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Category Report Modal -->
-<div class="modal fade" id="categoryReport" tabindex="-1" aria-labelledby="categoryReportLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="categoryReportLabel">Category Report</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="categoryReportForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Start date</label>
-                        <input type="date" name="start_date" class="form-control" value="{{ now()->startOfMonth()->toDateString() }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">End date</label>
-                        <input type="date" name="end_date" class="form-control" value="{{ now()->endOfMonth()->toDateString() }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Category (optional)</label>
-                        <select name="category_id" class="form-select">
-                            <option value="">All categories</option>
-                            @foreach($categories as $c)
-                                <option value="{{ $c->id }}">{{ $c->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Generate</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Yearly Report Modal -->
-<div class="modal fade" id="yearlyReport" tabindex="-1" aria-labelledby="yearlyReportLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="yearlyReportLabel">Yearly Report</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="yearlyReportForm">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Year</label>
-                        <input type="number" name="year" class="form-control" value="{{ now()->year }}" min="2000" max="2100">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Generate</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Report Sheet Modal -->
 <div class="modal fade" id="reportSheetModal" tabindex="-1" aria-labelledby="reportSheetModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered" style="   transform: translateY(45px);">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="reportSheetModalLabel">Generate Report Sheet (PDF)</h5>
@@ -232,11 +164,11 @@
                         <input type="date" class="form-control" id="bs-end" name="end_date" value="{{ now()->endOfMonth()->toDateString() }}">
                     </div>
                     <input type="hidden" name="format" value="pdf">
-                    <p class="text-muted">The PDF will open in a new tab. Make sure you are signed in.</p>
+                    <p class="text-muted">The PDF will open in a new tab.</p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Download PDF</button>
+                    <button type="submit" class="btn btn-primary" onclick="setTimeout(() => bootstrap.Modal.getInstance(document.getElementById('reportSheetModal')).hide(), 1000)">Download PDF</button>
                 </div>
             </form>
         </div>
@@ -258,14 +190,22 @@
     // Create or update Chart.js chart
     let monthlyChart = null, categoryChart = null, yearlyChart = null;
 
-    function createBarChart(ctx, labels, data, label) {
+    function createBarChart(ctx, labels, datasets) {
         return new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{ label: label, data: data, backgroundColor: '#0d6efd' }]
+                datasets: datasets
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
         });
     }
 
@@ -277,27 +217,47 @@
         });
     }
 
-    async function loadMonthly(startDate, endDate) {
+    async function loadMonthly(startDate, endDate, categoryId = '', updateSum = true) {
         try {
-            const json = await fetchReport({ group_by: 'month', start_date: startDate, end_date: endDate });
+            const json = await fetchReport({ group_by: 'month', start_date: startDate, end_date: endDate, category_id: categoryId });
             const report = json.data.report;
-            updateSummary(json.data.summary || {});
+            if (updateSum) updateSummary(json.data.summary || {});
+            
             const labels = report.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`);
-            const data = report.map(r => parseFloat(r.total));
+            const incomeData = report.map(r => r.income);
+            const expenseData = report.map(r => r.expense);
+            
+            const datasets = [
+                { 
+                    label: 'Income', 
+                    data: incomeData, 
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                    borderColor: '#198754',
+                    borderWidth: 1
+                },
+                { 
+                    label: 'Expense', 
+                    data: expenseData, 
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                    borderColor: '#dc3545',
+                    borderWidth: 1
+                }
+            ];
+
             const ctx = document.getElementById('monthlyChart').getContext('2d');
             if (monthlyChart) monthlyChart.destroy();
-            monthlyChart = createBarChart(ctx, labels, data, 'Expense by Month');
+            monthlyChart = createBarChart(ctx, labels, datasets);
         } catch (err) {
             console.error(err);
         }
     }
 
-    async function loadCategory(startDate, endDate) {
+    async function loadCategory(startDate, endDate, categoryId = '', updateSum = false) {
         try {
-            const json = await fetchReport({ group_by: 'category', start_date: startDate, end_date: endDate });
+            const json = await fetchReport({ group_by: 'category', start_date: startDate, end_date: endDate, category_id: categoryId });
             const report = json.data.report;
-            updateSummary(json.data.summary || {});
-            const labels = report.map(r => r.category.name || r.category);
+            if (updateSum) updateSummary(json.data.summary || {});
+            const labels = report.map(r => r.category ? r.category.name : 'Uncategorized');
             const data = report.map(r => parseFloat(r.total));
             const ctx = document.getElementById('categoryChart').getContext('2d');
             if (categoryChart) categoryChart.destroy();
@@ -305,19 +265,38 @@
         } catch (err) { console.error(err); }
     }
 
-    async function loadYearly(year) {
+    async function loadYearly(year, categoryId = '', updateSum = false) {
         try {
             const start = year + '-01-01';
             const end = year + '-12-31';
-            const json = await fetchReport({ group_by: 'month', start_date: start, end_date: end });
+            const json = await fetchReport({ group_by: 'month', start_date: start, end_date: end, category_id: categoryId });
             const report = json.data.report;
-            updateSummary(json.data.summary || {});
-            // Sum per month across year
+            if (updateSum) updateSummary(json.data.summary || {});
+            
             const labels = report.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`);
-            const data = report.map(r => parseFloat(r.total));
+            const incomeData = report.map(r => r.income);
+            const expenseData = report.map(r => r.expense);
+            
+            const datasets = [
+                { 
+                    label: 'Income', 
+                    data: incomeData, 
+                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
+                    borderColor: '#198754',
+                    borderWidth: 1
+                },
+                { 
+                    label: 'Expense', 
+                    data: expenseData, 
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                    borderColor: '#dc3545',
+                    borderWidth: 1
+                }
+            ];
+
             const ctx = document.getElementById('yearlyChart').getContext('2d');
             if (yearlyChart) yearlyChart.destroy();
-            yearlyChart = createBarChart(ctx, labels, data, `Year ${year}`);
+            yearlyChart = createBarChart(ctx, labels, datasets);
         } catch (err) { console.error(err); }
     }
 
@@ -328,17 +307,17 @@ function updateSummary(summary) {
             : (v || '0.00');
 
     const totalExpenses = Number(summary.total_expenses ?? 0);
-    
     const totalIncome   = Number(summary.total_income ?? 0);
-    const net           = Number(totalIncome - totalExpenses);
-    const total = Number(summary.net_total ?? 0);
+    const totalNet      = Number(summary.net_total ?? 0);
 
+    document.getElementById('summaryIncome').textContent   = fmt(totalIncome);
     document.getElementById('summaryExpenses').textContent = fmt(totalExpenses);
     document.getElementById('summaryCount').textContent    = summary.transaction_count ?? '0';
 
     const netEl = document.getElementById('summaryNet');
-    const sign  = total >= 0 ? '+' : '−';
-    netEl.textContent = sign + fmt(Math.abs(total));
+    const sign  = totalNet >= 0 ? '+' : '−';
+    netEl.textContent = sign + '$' + fmt(Math.abs(totalNet));
+    netEl.className = 'h4 mb-0 ' + (totalNet >= 0 ? 'text-success' : 'text-danger');
 }
 
     function downloadChartAsImage(chart, filename) {
@@ -366,45 +345,35 @@ function updateSummary(summary) {
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Load default charts for current month / year
-        const start = new Date(); start.setDate(1);
-        const end = new Date(); end.setMonth(end.getMonth()+1); end.setDate(0);
-        const s = start.toISOString().slice(0,10);
-        const e = end.toISOString().slice(0,10);
-        loadMonthly(s,e);
-        loadCategory(s,e);
-        loadYearly(new Date().getFullYear());
+        document.getElementById('generateAll').addEventListener('click', () => {
+            const start = document.getElementById('globalStart').value;
+            const end = document.getElementById('globalEnd').value;
+            const categoryId = document.getElementById('globalCategory').value;
+            
+            // Main monthly call updates summary cards
+            loadMonthly(start, end, categoryId, true);
+            loadCategory(start, end, categoryId, false);
+            
+            // Yearly chart uses the year from the end date, but won't overwrite summary cards
+            if (end) {
+                const year = new Date(end).getFullYear();
+                loadYearly(year, categoryId, false);
+            }
+        });
+
+        // Initial load
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+        
+        document.getElementById('globalStart').value = startOfMonth;
+        document.getElementById('globalEnd').value = endOfMonth;
+        
+        loadMonthly(startOfMonth, endOfMonth, '', true);
+        loadCategory(startOfMonth, endOfMonth, '', false);
+        loadYearly(today.getFullYear(), '', false);
 
         wireExportButtons();
-
-        // Monthly modal: on submit, refresh monthly chart
-        const monthlyForm = document.getElementById('monthlyReportForm');
-        if (monthlyForm) monthlyForm.addEventListener('submit', function (ev) {
-            ev.preventDefault();
-            const s = this.querySelector('[name="start_date"]').value;
-            const e = this.querySelector('[name="end_date"]').value;
-            loadMonthly(s,e);
-            bootstrap.Modal.getInstance(document.getElementById('monthlyReport')).hide();
-        });
-
-        // Category modal
-        const categoryForm = document.getElementById('categoryReportForm');
-        if (categoryForm) categoryForm.addEventListener('submit', function (ev) {
-            ev.preventDefault();
-            const s = this.querySelector('[name="start_date"]').value;
-            const e = this.querySelector('[name="end_date"]').value;
-            loadCategory(s,e);
-            bootstrap.Modal.getInstance(document.getElementById('categoryReport')).hide();
-        });
-
-        // Yearly modal
-        const yearlyForm = document.getElementById('yearlyReportForm');
-        if (yearlyForm) yearlyForm.addEventListener('submit', function (ev) {
-            ev.preventDefault();
-            const y = this.querySelector('[name="year"]').value;
-            loadYearly(y);
-            bootstrap.Modal.getInstance(document.getElementById('yearlyReport')).hide();
-        });
     });
 </script>
 @endpush

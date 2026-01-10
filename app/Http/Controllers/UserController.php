@@ -1685,9 +1685,15 @@ public function dashboard(Request $request)
             ->orderByDesc(DB::raw('COALESCE(transaction_date, created_at)'))
             ->paginate(20);
 
+        $categories = \App\Models\Category::whereNull('user_id')
+            ->orWhere('user_id', auth()->id())
+            ->orderBy('name')
+            ->get();
+
         return view('user.groups.transactions', [
             'group' => $group,
             'transactions' => $transactions,
+            'categories' => $categories,
         ]);
     }
 

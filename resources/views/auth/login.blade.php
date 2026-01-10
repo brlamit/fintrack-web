@@ -11,62 +11,50 @@
   }
 </script>
 </head>
-<body class="relative min-h-screen bg-gray-50 transition-colors duration-300">
+<body class="relative min-h-screen bg-gray-50">
 
 <div class="relative z-10 w-full max-w-md mx-auto px-4 py-10">
 
     <!-- Header -->
     <header class="mb-8 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <a href="/" class="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-500 to-sky-600 flex items-center justify-center text-white font-bold text-xl shadow-lg animate-bounce">
-                FT
+            <a href="/" class="flex items-center">
+                <img src="{{ asset('images/logo.png') }}" alt="FT" class="w-10 h-10 rounded-2xl shadow-lg" onerror="this.src='https://ui-avatars.com/api/?name=FT&background=14b8a6&color=fff'">
             </a>
             <div>
                 <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 via-sky-400 to-emerald-400">FinTrack</h1>
-                <p class="text-xs text-gray-600">Sign in to continue</p>
+                <p class="text-xs text-gray-400">Sign in to continue</p>
             </div>
         </div>
-
-        <!-- Theme Toggle -->
-        <button id="theme-toggle" class="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm bg-gray-200/80 border border-gray-300 text-gray-900 hover:bg-gray-300/80 transition">
-            <span id="theme-icon">🌞</span>
-            <span id="theme-text">Dark</span>
-        </button>
     </header>
 
     <!-- Login Card -->
-    <main class="transition-colors duration-300 rounded-2xl p-8 shadow-lg
-                 bg-white dark:bg-[rgba(30,30,40,0.7)] backdrop-blur-2xl
-                 border border-white/10 dark:border-white/20">
+    <main class="bg-white/80 backdrop-blur-md border border-gray-200 rounded-2xl p-8 shadow-lg">
         <div class="mb-6">
-            <h2 class="text-2xl font-bold mb-1 bg-clip-text text-transparent bg-gradient-to-r from-teal-400 via-sky-400 to-emerald-400">Welcome back</h2>
-            <p class="text-sm text-gray-700 dark:text-gray-300">Log in to see your latest spends, budgets and insights.</p>
+            <h2 class="text-2xl font-bold mb-1">Welcome back</h2>
+            <p class="text-sm text-gray-500">Log in to see your latest spends, budgets and insights.</p>
         </div>
 
         <form method="POST" action="{{ route('auth.login.post') }}" class="space-y-4 text-sm">
                 @csrf
             <div>
-                <label for="login" class="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Email or Username</label>
-                <input type="text" id="login" name="login" required placeholder="you@example.com or username"
-                    class="w-full rounded-xl border border-gray-300 dark:border-white/20 bg-white dark:bg-[rgba(30,30,40,0.7)]
-                           px-3 py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400
-                           focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                <label for="login" class="block mb-1 text-xs font-medium text-gray-700">Email Address</label>
+                <input type="text" id="login" name="login" required placeholder="you@example.com"
+                    class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
             </div>
 
             <div>
                 <div class="flex items-center justify-between mb-1">
-                    <label for="password" class="text-xs font-medium text-gray-700 dark:text-gray-300">Password</label>
-                    <a href="/forgot-password" class="text-xs text-sky-400 hover:text-sky-300">Forgot?</a>
+                    <label for="password" class="text-xs font-medium text-gray-700">Password</label>
+                    <a href="{{ route('auth.forgot-password') }}" class="text-xs text-teal-600 hover:text-teal-700 font-medium">Forgot?</a>
                 </div>
                 <input type="password" id="password" name="password" required placeholder="Enter your password"
-                    class="w-full rounded-xl border border-gray-300 dark:border-white/20 bg-white dark:bg-[rgba(30,30,40,0.7)]
-                           px-3 py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-400
-                           focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
+                    class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition">
             </div>
 
-            <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+            <div class="flex items-center gap-2 text-xs text-gray-600">
                 <label class="inline-flex items-center gap-2">
-                    <input type="checkbox" name="remember" class="rounded border-gray-300 dark:border-white/20 bg-white dark:bg-[rgba(30,30,40,0.7)] text-teal-500 focus:ring-teal-500">
+                    <input type="checkbox" name="remember" class="rounded border-gray-300 text-teal-500 focus:ring-teal-500">
                     Remember me
                 </label>
             </div>
@@ -76,52 +64,42 @@
             </div>
         </form>
 
-        <div class="mt-5 flex items-center justify-between gap-3 text-xs text-gray-400 dark:text-gray-500">
-            <span class="h-px flex-1 bg-gray-300/50 dark:bg-white/20"></span>
+        <div class="mt-5 flex items-center justify-between gap-3 text-xs text-gray-400">
+            <span class="h-px flex-1 bg-gray-200"></span>
             <span>or</span>
-            <span class="h-px flex-1 bg-gray-300/50 dark:bg-white/20"></span>
+            <span class="h-px flex-1 bg-gray-200"></span>
         </div>
 
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-300 text-center">
+        <div class="mt-4 text-xs text-gray-600 text-center">
             Don't have an account?
-            <a href="/register" class="text-sky-400 hover:text-sky-300 font-medium">Sign up</a>
+            <a href="{{ route('auth.register') }}" class="text-teal-600 hover:text-teal-700 font-medium">Sign up</a>
         </div>
     </main>
 
-    <footer class="mt-6 text-[10px] text-gray-500 text-center dark:text-gray-400">
+    <footer class="mt-8 text-[10px] text-gray-500 text-center">
         Tip: use the same email you signed up with to sync your budgets.
     </footer>
 </div>
 
+<!-- Auth Loader Overlay -->
+<div id="auth-loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gray-900/40 backdrop-blur-sm hidden">
+    <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+        <div class="w-10 h-10 border-4 border-teal-500/20 border-t-teal-500 rounded-full animate-spin"></div>
+        <p class="text-sm font-medium text-gray-700">Logging in...</p>
+    </div>
+</div>
+
 <script>
-(function(){
-    const html = document.documentElement; 
-    const toggle = document.getElementById('theme-toggle');
-    const icon = document.getElementById('theme-icon');
-    const text = document.getElementById('theme-text');
-    const key = 'fintrack-login-form-theme';
-
-    let theme = localStorage.getItem(key) || 'light'; // default light (page remains light)
-
-    function applyTheme() {
-        if(theme === 'dark') {
-            html.classList.add('dark'); // applies Tailwind dark only to form
-        } else {
-            html.classList.remove('dark');
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const loader = document.getElementById('auth-loader');
+        if (form && loader) {
+            form.addEventListener('submit', function() {
+                loader.classList.remove('hidden');
+            });
         }
-
-        icon.textContent = theme === 'dark' ? '🌞' : '🌙';
-        text.textContent = theme === 'dark' ? 'Light' : 'Dark';
-    }
-
-    applyTheme();
-
-    toggle.addEventListener('click', () => {
-        theme = theme === 'light' ? 'dark' : 'light';
-        localStorage.setItem(key, theme);
-        applyTheme();
     });
-})();
 </script>
+
 </body>
 </html>

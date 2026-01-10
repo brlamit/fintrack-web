@@ -150,7 +150,13 @@ Route::delete('/goals/{goal}', [UserController::class, 'destroyGoal'])->name('us
     Route::get('/groups/{group}', [UserController::class, 'group'])->name('user.group');
     Route::get('/groups/{group}/transactions', [UserController::class, 'groupTransactions'])->name('user.group.transactions');
     Route::post('/groups', [\App\Http\Controllers\GroupController::class, 'store'])->name('user.groups.store');
+    Route::put('/groups/{group}', [\App\Http\Controllers\GroupController::class, 'update'])->name('user.groups.update');
     Route::delete('/groups/{group}', [\App\Http\Controllers\GroupController::class, 'destroy'])->name('user.groups.destroy');
+    
+    // Group transactions
+    Route::put('/groups/{group}/transactions/{transaction}', [\App\Http\Controllers\GroupController::class, 'updateTransaction'])->name('user.group.transactions.update');
+    Route::delete('/groups/{group}/transactions/{transaction}', [\App\Http\Controllers\GroupController::class, 'deleteTransaction'])->name('user.group.transactions.destroy');
+
     // Add expense (split) from web form
     Route::post('groups/{group}/split', [\App\Http\Controllers\GroupController::class, 'splitExpense'])->name('groups.split');
 

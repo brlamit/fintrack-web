@@ -17,38 +17,25 @@
 
     <style>
         :root {
-            --glass-bg: rgba(30,30,40,0.7);
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-        }
-        .theme-light {
             --glass-bg: rgba(255,255,255,0.9);
             --text-primary: #111827;
             --text-secondary: #475569;
+            --bg-primary: #f8fafc;
         }
         .glass {
             background-color: var(--glass-bg);
             backdrop-filter: blur(20px);
             border-radius: 1.5rem;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(0,0,0,0.08);
         }
         .hero-bg {
-            background: radial-gradient(circle at top left, rgba(20,184,166,.15), transparent 50%),
-                        radial-gradient(circle at bottom right, rgba(14,165,233,.15), transparent 50%);
+            background: radial-gradient(circle at top left, rgba(20,184,166,0.05), transparent 50%),
+                        radial-gradient(circle at bottom right, rgba(14,165,233,0.05), transparent 50%);
         }
 
-        /* Dark mode layout: match welcome page hero-style colors */
         body.user-theme {
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--hero-bg, radial-gradient(circle at top left, rgba(20,184,166,0.15), transparent 50%),
-                        radial-gradient(circle at bottom right, rgba(14,165,233,0.15), transparent 50%),
-                        #0a0a0f);
-            color: var(--text-primary);
-        }
-
-        /* Light mode layout */
-        body.user-theme.theme-light {
-            background: var(--bg-primary);
+            background-color: var(--bg-primary);
             color: var(--text-primary);
         }
 
@@ -56,16 +43,10 @@
             background: var(--glass-bg) !important;
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            z-index: 1080; /* keep navbar + dropdowns above page content */
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            z-index: 1080;
         }
 
-        body.user-theme.theme-light .navbar.fintrack-navbar {
-            background: var(--glass-bg) !important;
-            border-bottom-color: rgba(0,0,0,0.08);
-        }
-
-        /* Navbar text colors for dark/light */
         body.user-theme .navbar.fintrack-navbar .navbar-brand,
         body.user-theme .navbar.fintrack-navbar .nav-link,
         body.user-theme .navbar.fintrack-navbar .dropdown-toggle,
@@ -73,110 +54,56 @@
             color: var(--text-primary) !important;
         }
 
-        body.user-theme.theme-light .navbar.fintrack-navbar .navbar-brand,
-        body.user-theme.theme-light .navbar.fintrack-navbar .nav-link,
-        body.user-theme.theme-light .navbar.fintrack-navbar .dropdown-toggle,
-        body.user-theme.theme-light .navbar.fintrack-navbar .nav-link i {
-            color: var(--text-primary) !important;
-        }
-
-        body.user-theme:not(.theme-light) .navbar.fintrack-navbar .nav-link.active {
-            color: var(--text-primary) !important;
+        body.user-theme .navbar.fintrack-navbar .nav-link.active {
+            color: #0ea5e9 !important;
             font-weight: 600;
         }
 
-        body.user-theme.theme-light .navbar.fintrack-navbar .nav-link.active {
-            color: var(--text-primary) !important;
-            font-weight: 600;
-        }
-
-        /* Dropdown menu theming */
         body.user-theme .dropdown-menu {
-            background-color: var(--glass-bg);
-            border-color: rgba(30,64,175,0.6);
-            z-index: 1070; /* ensure it appears above dashboard/cards */
+            background-color: #ffffff;
+            border-color: rgba(0,0,0,0.08);
+            z-index: 1070;
         }
 
-        body.user-theme .dropdown-menu .dropdown-item,
-        body.user-theme .dropdown-menu .dropdown-item i {
+        body.user-theme .dropdown-menu .dropdown-item {
             color: var(--text-primary);
         }
 
-        /* More compact notification dropdown */
+        body.user-theme .dropdown-menu .dropdown-item i {
+            color: var(--text-secondary);
+        }
+
+        body.user-theme .card {
+            background-color: #ffffff;
+            color: var(--text-primary);
+            border-color: rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        body.user-theme .card-header {
+            background-color: #fcfcfd !important;
+            border-bottom-color: rgba(0,0,0,0.08) !important;
+        }
+
+        body.user-theme .text-muted {
+            color: var(--text-secondary) !important;
+        }
+
+        /* Notifications menu specific */
         body.user-theme .notifications-menu {
-            min-width: 260px;
             min-width: 350px;
             padding: .5rem .85rem;
-            overflow-x: hidden; /* no horizontal scroll */
-            white-space: normal; allow wrapping
         }
 
         body.user-theme .notifications-menu .dropdown-item {
-            white-space: normal; /* wrap long text */
+            white-space: normal;
             word-wrap: break-word;
         }
 
         body.user-theme #notif-list {
             max-height: 260px;
-            max-width: 100%;
-            overflow-y: auto;   vertical scroll only
-            overflow-x: hidden; /* prevent horizontal scroll */
-        }
-
-        /* Dark mode dropdown text */
-        body.user-theme:not(.theme-light) .dropdown-menu .dropdown-item,
-        body.user-theme:not(.theme-light) .dropdown-menu .dropdown-item i {
-            color: #e5e7eb;
-        }
-
-        body.user-theme:not(.theme-light) .dropdown-menu .dropdown-item:hover,
-        body.user-theme:not(.theme-light) .dropdown-menu .dropdown-item:focus {
-            background-color: rgba(15,23,42,0.9);
-        }
-
-        /* Light mode dropdown */
-        body.user-theme.theme-light .dropdown-menu {
-            background-color: var(--glass-bg);
-            border-color: rgba(148,163,184,0.35);
-        }
-
-        body.user-theme.theme-light .dropdown-menu .dropdown-item,
-        body.user-theme.theme-light .dropdown-menu .dropdown-item i {
-            color: var(--text-primary);
-        }
-
-        /* Card base colors so dashboard content is readable but still Bootstrap-like */
-        body.user-theme .card {
-            background-color: var(--glass-bg);
-            color: var(--text-primary);
-            border-color: rgba(30,64,175,0.55);
-        }
-
-        body.user-theme.theme-light .card {
-            background-color: var(--glass-bg);
-            color: var(--text-primary);
-            border-color: rgba(148,163,184,0.35);
-        }
-
-        body.user-theme .card-header.bg-white,
-        body.user-theme .card-header {
-            background-color: var(--glass-bg) !important;
-            border-bottom-color: rgba(30,64,175,0.55) !important;
-        }
-
-        body.user-theme.theme-light .card-header.bg-white,
-        body.user-theme.theme-light .card-header {
-            background-color: var(--glass-bg) !important;
-            border-bottom-color: rgba(148,163,184,0.35) !important;
-        }
-
-        /* Muted text should stay readable in both themes */
-        body.user-theme .text-muted {
-            color: var(--text-secondary) !important;
-        }
-
-        body.user-theme.theme-light .text-muted {
-            color: var(--text-secondary) !important;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
         .fintrack-brand-mark {
@@ -202,44 +129,28 @@
             letter-spacing: .03em;
         }
 
-        .theme-toggle-btn-global {
-            border-radius: 999px;
-            border: 1px solid rgba(148,163,184,0.55);
-            background: var(--glass-bg);
-            color: var(--text-primary);
-            padding: .4rem .9rem;
-            font-size: .8rem;
-            display: inline-flex;
-            align-items: center;
-            gap: .35rem;
-        }
-
-        body.user-theme.theme-light .theme-toggle-btn-global {
-            background: var(--glass-bg);
-            color: var(--text-primary);
-        }
-
-        /* Page Loader Styles */
+        /* Page loader setup */
         .page-loader {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
-            backdrop-filter: blur(4px);
         }
 
         .loader-content {
-            background: white;
-            padding: 40px;
+            background: #ffffff;
+            padding: 2rem;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            color: var(--text-primary);
         }
 
         .loader-content .spinner-border {
@@ -251,16 +162,7 @@
         .loader-content p {
             margin-bottom: 0;
             font-size: 14px;
-        }
-
-        /* Dark mode loader */
-        body.user-theme:not(.theme-light) .loader-content {
-            background: #1e1e28;
-            color: #f1f5f9;
-        }
-
-        body.user-theme:not(.theme-light) .loader-content p {
-            color: #94a3b8;
+            color: var(--text-secondary);
         }
     </style>
 
@@ -272,7 +174,7 @@
     <nav class="navbar navbar-expand-lg navbar-light shadow-sm py-3 fintrack-navbar">
         <div class="container px-4">
             <a class="navbar-brand d-flex align-items-center" href="{{ route('user.dashboard') }}">
-                <span class="fintrack-brand-mark">FT</span>
+                <img src="{{ asset('images/logo.png') }}" alt="FinTrack Logo" width="40" height="40" class="me-2 rounded-circle shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=FT&background=14b8a6&color=fff'">
                 <span class="fintrack-brand-text">FinTrack</span>
             </a>
 
@@ -290,12 +192,7 @@
                 </ul>
 
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item me-3 d-none d-md-block">
-                        <button id="user-theme-toggle" type="button" class="btn btn-sm theme-toggle-btn-global">
-                            <i class="fas fa-sun"></i>
-                            <span>Light mode</span>
-                        </button>
-                    </li>
+
                     <!-- Notifications Dropdown -->
                     <li class="nav-item dropdown me-3 position-relative ">
                         @php
@@ -451,45 +348,7 @@
         });
     </script>
 
-    <!-- Global FinTrack theme toggle -->
-    <script>
-        (function () {
-            const body = document.body;
-            const storageKey = 'fintrack-theme';
-            const toggle = document.getElementById('user-theme-toggle');
-            let current = localStorage.getItem(storageKey) || 'dark';
 
-            function applyTheme() {
-                if (!body.classList.contains('user-theme')) {
-                    body.classList.add('user-theme');
-                }
-                if (current === 'light') {
-                    body.classList.add('theme-light');
-                } else {
-                    body.classList.remove('theme-light');
-                }
-            }
-
-            function updateLabel() {
-                if (!toggle) return;
-                toggle.innerHTML = current === 'light'
-                    ? '<i class="fas fa-moon"></i><span>Dark mode</span>'
-                    : '<i class="fas fa-sun"></i><span>Light mode</span>';
-            }
-
-            applyTheme();
-            updateLabel();
-
-            if (toggle) {
-                toggle.addEventListener('click', function () {
-                    current = current === 'light' ? 'dark' : 'light';
-                    localStorage.setItem(storageKey, current);
-                    applyTheme();
-                    updateLabel();
-                });
-            }
-        })();
-    </script>
 
     <!-- Supabase Realtime Notifications -->
     <script>
@@ -710,6 +569,9 @@
 
         // Show loader on form submission
         document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form.target === '_blank') return; // Skip if targets new window/disk download
+
             const pageLoader = document.getElementById('pageLoader');
             if (pageLoader) {
                 pageLoader.style.display = 'flex';
@@ -719,6 +581,8 @@
         // Disable all buttons on form submission
         document.addEventListener('submit', function(e) {
             const form = e.target;
+            if (form.target === '_blank') return; // Skip if targets new window
+
             const buttons = form.querySelectorAll('button[type="submit"], button.btn-primary, button.btn-success, button.btn-danger');
             buttons.forEach(button => {
                 button.disabled = true;

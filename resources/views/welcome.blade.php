@@ -20,20 +20,15 @@
 
 <style>
 :root {
-    --glass-bg: rgba(30,30,40,0.7);
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-}
-.theme-light {
     --glass-bg: rgba(255,255,255,0.9);
-    --text-primary: #111827; /* slightly dark text for light mode */
+    --text-primary: #111827;
     --text-secondary: #475569;
 }
 .glass {
     background-color: var(--glass-bg);
     backdrop-filter: blur(20px);
     border-radius: 1.5rem;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(0,0,0,0.08);
 }
 .gradient-text {
     background: linear-gradient(90deg,#14b8a6,#0ea5e9,#10b981);
@@ -41,8 +36,8 @@
     -webkit-text-fill-color: transparent;
 }
 .hero-bg {
-    background: radial-gradient(circle at top left, rgba(20,184,166,.15), transparent 50%),
-                radial-gradient(circle at bottom right, rgba(14,165,233,.15), transparent 50%);
+    background: radial-gradient(circle at top left, rgba(20,184,166,.05), transparent 50%),
+                radial-gradient(circle at bottom right, rgba(14,165,233,.05), transparent 50%);
 }
 @keyframes float {
     0%,100% { transform: translateY(0); }
@@ -53,11 +48,11 @@
 @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
-<body class="hero-bg relative min-h-screen px-4 py-12 transition-colors duration-500 text-[var(--text-primary)]">
+<body class="hero-bg relative min-h-screen px-4 py-12 text-[var(--text-primary)] transition-colors duration-500">
 
 <!-- Background glow -->
 <div class="absolute inset-0 pointer-events-none">
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-br from-teal-500/10 to-sky-500/10 blur-3xl rounded-full"></div>
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-br from-teal-500/5 to-sky-500/5 blur-3xl rounded-full"></div>
 </div>
 
 <div class="relative z-10 max-w-6xl mx-auto">
@@ -65,9 +60,7 @@
 <!-- HEADER -->
 <header class="flex items-center justify-between mb-14">
     <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500 to-sky-600 flex items-center justify-center text-white font-bold text-2xl animate-float">
-            FT
-        </div>
+        <img src="{{ asset('images/logo.png') }}" alt="FinTrack Logo" class="w-12 h-12 rounded-2xl animate-float shadow-lg" onerror="this.src='https://ui-avatars.com/api/?name=FT&background=14b8a6&color=fff'">
         <div>
             <h2 class="text-xl font-bold gradient-text">FinTrack</h2>
             <p class="text-sm text-[var(--text-secondary)]">Money made simple</p>
@@ -75,12 +68,6 @@
     </div>
 
     <div class="flex items-center gap-3">
-        <!-- Theme toggle with icon -->
-        <button id="theme-toggle" class="px-3 py-2 rounded-full text-xs bg-slate-900/70 border border-slate-700/70 text-white flex items-center gap-1">
-            <span id="theme-icon">🌞</span>
-            <span id="theme-text">Light</span>
-        </button>
-
         @auth
         <a href="/dashboard" class="px-6 py-3 rounded-full bg-gradient-to-r from-teal-500 to-sky-600 text-white font-medium hover:scale-105 transition">
             Dashboard
@@ -148,32 +135,5 @@
     <span>Secure • Private • Simple</span>
 </footer>
 
-<!-- THEME SCRIPT -->
-<script>
-(function(){
-    const body = document.body;
-    const toggle = document.getElementById('theme-toggle');
-    const icon = document.getElementById('theme-icon');
-    const text = document.getElementById('theme-text');
-    const key = 'fintrack-theme';
-
-    let current = localStorage.getItem(key) || 'dark';
-
-    function apply() {
-        const isLight = current === 'light';
-        body.classList.toggle('theme-light', isLight);
-        icon.textContent = isLight ? '🌙' : '🌞';
-        text.textContent = isLight ? 'Dark' : 'Light';
-    }
-
-    apply();
-
-    toggle.onclick = () => {
-        current = current === 'light' ? 'dark' : 'light';
-        localStorage.setItem(key, current);
-        apply();
-    };
-})();
-</script>
 </body>
 </html>

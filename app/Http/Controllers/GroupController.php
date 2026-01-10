@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Mail\GroupInvitationMail;
 use App\Services\ReceiptOcrService;
@@ -110,37 +111,49 @@ class GroupController extends Controller
     /**
      * Update the specified group.
      */
-    public function update(Request $request, Group $group): JsonResponse
+    public function update(Request $request, Group $group)
     {
         // Check if user is admin of the group
         $member = $group->members()->where('user_id', auth()->id())->first();
         if (!$member || $member->role !== 'admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 403);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+            return redirect()->back()->with('error', 'Unauthorized');
         }
 
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
+            'type' => 'sometimes|in:family,friends',
             'description' => 'nullable|string|max:1000',
+            'budget_limit' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        $group->update($request->only(['name', 'description']));
+        $group->update($request->only(['name', 'type', 'description', 'budget_limit']));
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Group updated successfully',
-            'data' => $group->load(['owner', 'members']),
-        ]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Group updated successfully',
+                'data' => $group->load(['owner', 'members']),
+            ]);
+        }
+
+        return redirect()->route('user.group', $group)->with('success', 'Group updated successfully');
     }
 
     /**
@@ -546,6 +559,255 @@ class GroupController extends Controller
             }
 
             return redirect()->back()->with('error', 'Failed to create split transaction');
+        }
+    }
+
+    /**
+     * Update a group transaction.
+     */
+    public function updateTransaction(Request $request, Group $group, \App\Models\Transaction $transaction)
+    {
+        // Check if user is member of the group
+        if (!$group->members()->where('user_id', auth()->id())->exists()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Group not found',
+                ], 404);
+            }
+            return redirect()->back()->with('error', 'Group not found');
+        }
+
+        // Check if transaction belongs to this group
+        if ($transaction->group_id !== $group->id) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found in this group',
+                ], 404);
+            }
+            return redirect()->back()->with('error', 'Transaction not found in this group');
+        }
+
+        // Check authorization: user must be either the creator or an admin
+        $member = $group->members()->where('user_id', auth()->id())->first();
+        $isCreator = $transaction->user_id === auth()->id();
+        $isAdmin = $member && $member->role === 'admin';
+        
+        if (!$isCreator && !$isAdmin) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized. You can only update your own transactions.',
+                ], 403);
+            }
+            return redirect()->back()->with('error', 'Unauthorized. You can only update your own transactions.');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:0.01',
+            'description' => 'required|string|max:255',
+            'transaction_date' => 'sometimes|date|before_or_equal:today',
+            'type' => 'sometimes|in:income,expense',
+            'category_id' => 'required|exists:categories,id',
+            'split_type' => 'required|in:equal,custom,percentage',
+            'splits' => 'required|array|min:1',
+            'splits.*.user_id' => 'required|exists:users,id',
+            'splits.*.amount' => 'nullable|numeric|min:0',
+            'splits.*.percent' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        DB::beginTransaction();
+        try {
+            // Find related transactions in the same split group
+            $relatedTransactions = \App\Models\Transaction::where('group_id', $transaction->group_id)
+                ->where('description', $transaction->description)
+                ->where('category_id', $transaction->category_id)
+                ->where('type', $transaction->type)
+                ->whereDate('created_at', $transaction->created_at->toDateString())
+                ->whereBetween('created_at', [
+                    $transaction->created_at->subSeconds(2),
+                    $transaction->created_at->addSeconds(2)
+                ])
+                ->get();
+
+            // Total amount for the whole split
+            $newTotalAmount = (float) $request->input('amount');
+            $splitType = $request->input('split_type');
+            $rawSplits = $request->input('splits', []);
+            $newType = $request->input('type', $transaction->type);
+            $newCategoryId = $request->input('category_id', $transaction->category_id);
+            $newDescription = $request->input('description', $transaction->description);
+            $newDate = $request->input('transaction_date', $transaction->transaction_date ? $transaction->transaction_date->toDateString() : now()->toDateString());
+
+            // Calculate portions
+            $computedSplits = [];
+            if ($splitType === 'equal') {
+                $count = count($rawSplits);
+                $base = round($newTotalAmount / $count, 2);
+                $runningTotal = 0.0;
+                foreach ($rawSplits as $idx => $s) {
+                    $portion = ($idx === $count - 1) ? round($newTotalAmount - $runningTotal, 2) : $base;
+                    $runningTotal += $portion;
+                    $computedSplits[] = ['user_id' => $s['user_id'], 'amount' => $portion];
+                }
+            } elseif ($splitType === 'percentage') {
+                foreach ($rawSplits as $s) {
+                    $computedSplits[] = [
+                        'user_id' => $s['user_id'],
+                        'amount' => round(($s['percent'] / 100) * $newTotalAmount, 2)
+                    ];
+                }
+            } else { // custom
+                foreach ($rawSplits as $s) {
+                    $computedSplits[] = ['user_id' => $s['user_id'], 'amount' => (float) $s['amount']];
+                }
+            }
+
+            // Adjust group budget: reverse old split total, add new split total
+            if (!is_null($group->budget_limit)) {
+                $oldSplitTotal = $relatedTransactions->where('type', 'expense')->sum('amount');
+                $newSplitTotal = ($newType === 'expense') ? $newTotalAmount : 0;
+                $group->budget_limit = max(0, round($group->budget_limit + $oldSplitTotal - $newSplitTotal, 2));
+                $group->save();
+            }
+
+            // Update existing or create new transactions
+            $processedUserIds = [];
+            foreach ($computedSplits as $split) {
+                $userId = $split['user_id'];
+                $processedUserIds[] = $userId;
+                
+                $existing = $relatedTransactions->where('user_id', $userId)->first();
+                if ($existing) {
+                    $existing->update([
+                        'amount' => $split['amount'],
+                        'description' => $newDescription,
+                        'category_id' => $newCategoryId,
+                        'type' => $newType,
+                        'transaction_date' => $newDate,
+                    ]);
+                } else {
+                    \App\Models\Transaction::create([
+                        'user_id' => $userId,
+                        'group_id' => $group->id,
+                        'category_id' => $newCategoryId,
+                        'amount' => $split['amount'],
+                        'description' => $newDescription,
+                        'transaction_date' => $newDate,
+                        'type' => $newType,
+                        'receipt_id' => $transaction->receipt_id,
+                    ]);
+                }
+            }
+
+            // Delete transactions for users no longer in the split
+            foreach ($relatedTransactions as $rel) {
+                if (!in_array($rel->user_id, $processedUserIds)) {
+                    $rel->delete();
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Group split updated successfully',
+                'data' => $transaction->fresh()->load(['user', 'category']),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update group transaction: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete a group transaction.
+     */
+    public function deleteTransaction(Group $group, \App\Models\Transaction $transaction): JsonResponse
+    {
+        // Check if user is member of the group
+        if (!$group->members()->where('user_id', auth()->id())->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Group not found',
+            ], 404);
+        }
+
+        // Check if transaction belongs to this group
+        if ($transaction->group_id !== $group->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction not found in this group',
+            ], 404);
+        }
+
+        // Check authorization: user must be either the creator or an admin
+        $member = $group->members()->where('user_id', auth()->id())->first();
+        $isCreator = $transaction->user_id === auth()->id();
+        $isAdmin = $member && $member->role === 'admin';
+        
+        if (!$isCreator && !$isAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You can only delete your own transactions.',
+            ], 403);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Find related transactions in the same split group
+            $relatedTransactions = \App\Models\Transaction::where('group_id', $transaction->group_id)
+                ->where('description', $transaction->description)
+                ->where('category_id', $transaction->category_id)
+                ->where('type', $transaction->type)
+                ->whereDate('created_at', $transaction->created_at->toDateString())
+                ->whereBetween('created_at', [
+                    $transaction->created_at->subSeconds(2),
+                    $transaction->created_at->addSeconds(2)
+                ])
+                ->get();
+
+            // Total amount to restore to budget
+            $restoreAmount = $relatedTransactions->where('type', 'expense')->sum('amount');
+
+            // Restore budget if there's an expense total
+            if ($restoreAmount > 0 && !is_null($group->budget_limit)) {
+                $group->budget_limit = max(0, round($group->budget_limit + $restoreAmount, 2));
+                $group->save();
+            }
+
+            // Delete all related transactions
+            foreach ($relatedTransactions as $rel) {
+                $rel->delete();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Group transaction and its splits deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to delete group transaction: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete group transaction',
+            ], 500);
         }
     }
 }

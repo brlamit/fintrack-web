@@ -231,12 +231,26 @@ if ($request->receipt_id) {
      */
     public function update(Request $request, Transaction $transaction): JsonResponse
     {
-        // Check if transaction belongs to authenticated user
-        if ($transaction->user_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction not found',
-            ], 404);
+        // Check authorization based on transaction type
+        if ($transaction->group_id) {
+            // For group transactions, only admin can update
+            $group = $transaction->group;
+            $member = $group->members()->where('user_id', auth()->id())->first();
+            
+            if (!$member || $member->role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+        } else {
+            // For personal transactions, user must be the owner
+            if ($transaction->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found',
+                ], 404);
+            }
         }
 
         $validator = Validator::make($request->all(), [
@@ -326,12 +340,26 @@ if ($request->receipt_id) {
      */
     public function destroy(Transaction $transaction): JsonResponse
     {
-        // Check if transaction belongs to authenticated user
-        if ($transaction->user_id !== auth()->id()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Transaction not found',
-            ], 404);
+        // Check authorization based on transaction type
+        if ($transaction->group_id) {
+            // For group transactions, only admin can delete
+            $group = $transaction->group;
+            $member = $group->members()->where('user_id', auth()->id())->first();
+            
+            if (!$member || $member->role !== 'admin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 403);
+            }
+        } else {
+            // For personal transactions, user must be the owner
+            if ($transaction->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found',
+                ], 404);
+            }
         }
 
         $transaction->delete();

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Balance Sheet</title>
+    <title>Report Sheet</title>
     <style>
         body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 12px; }
         .header { text-align: center; margin-bottom: 20px; }
@@ -17,7 +17,7 @@
 </head>
 <body>
     <div class="header">
-        <h2>Balance Sheet</h2>
+        <h2>Report Sheet</h2>
         <div>Period: {{ $period['start_date'] }} — {{ $period['end_date'] }}</div>
         @if(!empty($pdf_error))
             <div style="margin-top:8px; color:#b00; font-size:12px;">
