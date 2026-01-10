@@ -69,9 +69,7 @@
     <nav class="navbar navbar-expand-lg sticky-top shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('admin.dashboard') }}">
-                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                    <i class="fas fa-chart-pie text-white" style="font-size: 0.8rem;"></i>
-                </div>
+                <img src="{{ asset('images/logo.png') }}" alt="FinTrack Logo" width="32" height="32" class="rounded-circle shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=FT&background=6366f1&color=fff'">
                 <span class="fw-bold tracking-tight">FinTrack Admin</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
